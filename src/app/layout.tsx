@@ -1,27 +1,30 @@
-import { Inter } from 'next/font/google';
-import './globals.css';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import type { Metadata } from 'next'
+import { Outfit } from 'next/font/google'
+import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] });
+const outfit = Outfit({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-outfit',
+})
 
-export const metadata = {
-  title: 'Jagadeesh Hair Style',
-  description: 'Professional hair styling, beard cuts, and hair coloring services',
-};
+export const metadata: Metadata = {
+  title: 'Friday - AI Social Life Assistant',
+  description: 'The World\'s First AI-Powered Social Life Assistant. Friday makes sure you actually talk, meet, and stay close with the people who matter.',
+  icons: {
+    icon: '/images/logo1.png',
+    apple: '/images/logo1.png',
+  }
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Header />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
-      </body>
+      <body className={`${outfit.className} antialiased`}>{children}</body>
     </html>
-  );
+  )
 } 

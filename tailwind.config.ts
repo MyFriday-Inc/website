@@ -28,6 +28,7 @@ const config: Config = {
       colors: {
         black: "#000000",
         white: "#ffffff",
+        friday: "#17d0be", // Friday logo color
         green: {
           300: "#6ee7b7",
           400: "#34d399",
