@@ -16,6 +16,18 @@ export default function Stage1_Drafting({ onComplete }: Stage1Props) {
   const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
   const [showOptions, setShowOptions] = useState(false);
+
+  // Color mapping for Tailwind CSS
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue': return 'bg-blue-100 text-blue-800';
+      case 'yellow': return 'bg-yellow-100 text-yellow-800';
+      case 'green': return 'bg-green-100 text-green-800';
+      case 'purple': return 'bg-purple-100 text-purple-800';
+      case 'red': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
   
   const emailSubject = "Let's catch up soon!";
   const emailContent = "Hey everyone! It's been a while since we all caught up. I noticed the group hasn't connected in some time. Let's fix that!";
@@ -118,7 +130,7 @@ export default function Stage1_Drafting({ onComplete }: Stage1Props) {
                     key={index}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`bg-${friend?.color || 'gray'}-100 text-${friend?.color || 'gray'}-800 text-[10px] px-1.5 py-0.5 rounded-md flex items-center`}
+                    className={`${getColorClasses(friend?.color || 'gray')} text-[10px] px-1.5 py-0.5 rounded-md flex items-center`}
                   >
                     {recipient}
                   </motion.div>

@@ -10,6 +10,18 @@ type Stage5_SentFinalProps = {
 
 export default function Stage5_SentFinal({ onComplete }: Stage5_SentFinalProps) {
   const { friends, finalPlanContent, emailTimestamps } = useEmailDemo();
+
+  // Color mapping for Tailwind CSS
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue': return 'bg-blue-100 text-blue-800';
+      case 'yellow': return 'bg-yellow-100 text-yellow-800';
+      case 'green': return 'bg-green-100 text-green-800';
+      case 'purple': return 'bg-purple-100 text-purple-800';
+      case 'red': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
   
   // Auto-advance and restart demo after showing the sent email for a few seconds
   useEffect(() => {
@@ -72,7 +84,7 @@ export default function Stage5_SentFinal({ onComplete }: Stage5_SentFinalProps) 
                 {friends.map((friend, index) => (
                   <div 
                     key={index} 
-                    className={`w-6 h-6 rounded-full bg-${friend.color}-100 border border-white flex items-center justify-center text-xs font-bold`}
+                    className={`w-6 h-6 rounded-full ${getColorClasses(friend.color)} border border-white flex items-center justify-center text-xs font-bold`}
                   >
                     {friend.name.charAt(0)}
                   </div>

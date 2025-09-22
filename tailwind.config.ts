@@ -7,6 +7,16 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1.5rem', // px-6 on mobile (24px)
+        sm: '2rem',         // px-8 on sm+ (32px)
+        md: '1.5rem',       // px-6 on md+ (24px)
+        lg: '2rem',         // px-8 on lg+ (32px)
+        xl: '2rem',         // px-8 on xl+ (32px)
+      },
+    },
     extend: {
       spacing: {
         // This adds the px-6 utility and other spacing values

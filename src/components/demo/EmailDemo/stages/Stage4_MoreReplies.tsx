@@ -17,6 +17,18 @@ export default function Stage4_MoreReplies({ onComplete }: Stage4Props) {
   const morgan = friends.find(f => f.name === 'Morgan');
   const taylor = friends.find(f => f.name === 'Taylor');
   
+  // Color mapping for Tailwind CSS
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue': return 'bg-blue-100 text-blue-800';
+      case 'yellow': return 'bg-yellow-100 text-yellow-800';
+      case 'green': return 'bg-green-100 text-green-800';
+      case 'purple': return 'bg-purple-100 text-purple-800';
+      case 'red': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
   useEffect(() => {
     const sequence = async () => {
       // Show original email summary immediately
@@ -74,7 +86,7 @@ export default function Stage4_MoreReplies({ onComplete }: Stage4Props) {
             layout
           >
             <div className="flex items-start">
-              <div className={`w-6 h-6 rounded-full bg-${morgan?.color || 'red'}-100 text-${morgan?.color || 'red'}-800 flex items-center justify-center text-xs font-bold mr-2 flex-shrink-0`}>
+              <div className={`w-6 h-6 rounded-full ${getColorClasses(morgan?.color || 'red')} flex items-center justify-center text-xs font-bold mr-2 flex-shrink-0`}>
                 M
               </div>
               
@@ -108,7 +120,7 @@ export default function Stage4_MoreReplies({ onComplete }: Stage4Props) {
             layout
           >
             <div className="flex items-start">
-              <div className={`w-6 h-6 rounded-full bg-${taylor?.color || 'yellow'}-100 text-${taylor?.color || 'yellow'}-800 flex items-center justify-center text-xs font-bold mr-2 flex-shrink-0`}>
+              <div className={`w-6 h-6 rounded-full ${getColorClasses(taylor?.color || 'yellow')} flex items-center justify-center text-xs font-bold mr-2 flex-shrink-0`}>
                 T
               </div>
               

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -50,6 +50,10 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Debounce and request cancellation refs
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const abortController = useRef<AbortController | null>(null)
+
   // API call helper
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
@@ -96,7 +100,19 @@ export default function ProfilePage() {
     }
   }, [token])
 
-  // Search cities
+  // Cleanup timers and abort controllers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+      if (abortController.current) {
+        abortController.current.abort()
+      }
+    }
+  }, [])
+
+  // Search cities with abort controller
   const searchCities = async (searchTerm: string) => {
     if (searchTerm.length < 2) {
       setCities([])
@@ -104,26 +120,56 @@ export default function ProfilePage() {
       return
     }
     
+    // Cancel previous request if it exists
+    if (abortController.current) {
+      abortController.current.abort()
+    }
+    
+    // Create new abort controller for this request
+    abortController.current = new AbortController()
+    
     setIsSearching(true)
     try {
-      const result = await apiCall(`/cities?search=${encodeURIComponent(searchTerm)}`)
+      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.NEXT_PUBLIC_API_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        signal: abortController.current.signal
+      })
+      
+      const result = await response.json()
       if (result.success) {
         setCities(result.cities)
         setShowCities(true)
       }
     } catch (error) {
-      console.error('City search error:', error)
+      // Don't show error for aborted requests
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('City search error:', error)
+      }
     } finally {
       setIsSearching(false)
     }
   }
 
-  // Handle city search input
+  // Handle city search input with debouncing
   const handleCitySearch = (value: string) => {
     setCitySearch(value)
     setSelectedCity(null)
     setFormData(prev => ({ ...prev, city_id: null }))
-    searchCities(value)
+    
+    // Clear previous debounce timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+    
+    // Set new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      searchCities(value)
+    }, 400) // 400ms delay
   }
 
   // Select city
@@ -281,7 +327,7 @@ export default function ProfilePage() {
           }}
         />
         
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-28 mt-20">
+        <div className="relative z-10 container py-16 sm:py-20 lg:py-28 mt-20">
           <div className="max-w-md mx-auto">
             
             {/* Profile Header */}

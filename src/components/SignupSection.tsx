@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Modal from '@/components/Modal'
 import Link from 'next/link'
+import { useInView } from '@/hooks/useInView'
 
 interface City {
   id: number
@@ -46,6 +47,14 @@ const RELATIONSHIP_OPTIONS = [
 export default function SignupSection() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const animationIdRef = useRef<number | undefined>(undefined)
+  
+  // Viewport detection for animations
+  const { ref: sectionRef, isInView } = useInView({
+    threshold: 0.1,
+    rootMargin: '100px 0px'
+  })
   
   // Form states
   const [formData, setFormData] = useState({
@@ -83,6 +92,10 @@ export default function SignupSection() {
   const [showTermsModal, setShowTermsModal] = useState(false)
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
 
+  // Debounce and request cancellation refs
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const abortController = useRef<AbortController | null>(null)
+
   // Check for reduced motion preference
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -93,20 +106,49 @@ export default function SignupSection() {
     }
     
     mediaQuery.addEventListener('change', handleMediaChange)
-    return () => mediaQuery.removeEventListener('change', handleMediaChange)
+    // Disable parallax during scroll for performance
+    let scrollTimer: NodeJS.Timeout;
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => setIsScrolling(false), 150);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaChange);
+      window.removeEventListener('scroll', handleScroll);
+      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+    };
+  }, [])
+
+  // Cleanup timers and abort controllers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+      if (abortController.current) {
+        abortController.current.abort()
+      }
+    }
   }, [])
   
-  // Track mouse position for parallax effect
+  // Track mouse position for parallax effect (throttled)
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (reducedMotion) return
+    if (reducedMotion || isScrolling) return
     
-    const { clientX, clientY } = e
-    const { innerWidth, innerHeight } = window
+    if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
     
-    const x = (clientX / innerWidth - 0.5) * 2
-    const y = (clientY / innerHeight - 0.5) * 2
-    
-    setMousePosition({ x, y })
+    animationIdRef.current = requestAnimationFrame(() => {
+      const { clientX, clientY } = e
+      const { innerWidth, innerHeight } = window
+      
+      const x = (clientX / innerWidth - 0.5) * 2
+      const y = (clientY / innerHeight - 0.5) * 2
+      
+      setMousePosition({ x, y })
+    });
   }
 
   // API call helper
@@ -123,7 +165,7 @@ export default function SignupSection() {
     return response.json()
   }
 
-  // Search cities
+  // Search cities with abort controller
   const searchCities = async (searchTerm: string) => {
     if (searchTerm.length < 2) {
       setCities([])
@@ -131,26 +173,55 @@ export default function SignupSection() {
       return
     }
     
+    // Cancel previous request if it exists
+    if (abortController.current) {
+      abortController.current.abort()
+    }
+    
+    // Create new abort controller for this request
+    abortController.current = new AbortController()
+    
     setIsSearching(true)
     try {
-      const result = await apiCall(`/cities?search=${encodeURIComponent(searchTerm)}`)
+      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.NEXT_PUBLIC_API_KEY!,
+        },
+        signal: abortController.current.signal
+      })
+      
+      const result = await response.json()
       if (result.success) {
         setCities(result.cities)
         setShowCities(true)
       }
-    } catch (err) {
-      console.error('City search error:', err)
+    } catch (error) {
+      // Don't show error for aborted requests
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('City search error:', error)
+      }
     } finally {
       setIsSearching(false)
     }
   }
 
-  // Handle city search input
+  // Handle city search input with debouncing
   const handleCitySearch = (value: string) => {
     setCitySearch(value)
     setSelectedCity(null)
     setFormData(prev => ({ ...prev, city_id: null }))
-    searchCities(value)
+    
+    // Clear previous debounce timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+    
+    // Set new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      searchCities(value)
+    }, 400) // 400ms delay
   }
 
   // Select city
@@ -239,6 +310,7 @@ export default function SignupSection() {
 
   return (
     <section 
+      ref={sectionRef}
       id="signup-section"
       className="min-h-[80vh] md:min-h-screen bg-black relative overflow-hidden" 
       onMouseMove={handleMouseMove}
@@ -258,7 +330,7 @@ export default function SignupSection() {
         }}
       />
       
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
+      <div className="relative z-10 container py-12 sm:py-16 lg:py-20">
         <div className="flex flex-col items-center justify-center max-w-2xl mx-auto">
           
           {/* More Compact & Elegant Headline */}
@@ -268,7 +340,7 @@ export default function SignupSection() {
               <motion.span
                 className="inline-block mr-2"
                 initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
                 transition={{
                   duration: 0.5,
                   delay: 0.05,
@@ -282,7 +354,7 @@ export default function SignupSection() {
               <motion.span
                 className="bg-gradient-to-r from-[#FF6B35] to-[#FF8F35] bg-clip-text text-transparent inline-block"
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
+                animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.7, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
               >
                 Friday
@@ -292,7 +364,7 @@ export default function SignupSection() {
               <motion.span
                 className="inline-block sm:block sm:mt-0.5 bg-gradient-to-r from-[#0ef5dd] via-[#11d0be] to-[#1cabb8] bg-clip-text text-transparent ml-1 sm:ml-0"
                 initial={{ opacity: 0, filter: "blur(8px)", y: 20 }}
-                animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                animate={isInView ? { opacity: 1, filter: "blur(0px)", y: 0 } : { opacity: 0, filter: "blur(8px)", y: 20 }}
                 transition={{
                   duration: 0.6,
                   delay: 0.6,
@@ -308,7 +380,7 @@ export default function SignupSection() {
           <motion.p 
             className="text-sm md:text-base text-gray-300 leading-relaxed max-w-lg text-center mb-6"
             initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
             transition={{
               duration: 0.5,
               delay: 0.9,

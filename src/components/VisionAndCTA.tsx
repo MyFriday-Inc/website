@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 export default function VisionAndCTA() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const animationIdRef = useRef<number | undefined>(undefined)
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -17,20 +19,38 @@ export default function VisionAndCTA() {
     }
     
     mediaQuery.addEventListener('change', handleMediaChange)
-    return () => mediaQuery.removeEventListener('change', handleMediaChange)
+    
+    // Disable parallax during scroll for performance
+    let scrollTimer: NodeJS.Timeout;
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => setIsScrolling(false), 150);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaChange);
+      window.removeEventListener('scroll', handleScroll);
+      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+    };
   }, [])
   
-  // Track mouse position for parallax effect
+  // Track mouse position for parallax effect (throttled)
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (reducedMotion) return
+    if (reducedMotion || isScrolling) return
     
-    const { clientX, clientY } = e
-    const { innerWidth, innerHeight } = window
+    if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
     
-    const x = (clientX / innerWidth - 0.5) * 2
-    const y = (clientY / innerHeight - 0.5) * 2
-    
-    setMousePosition({ x, y })
+    animationIdRef.current = requestAnimationFrame(() => {
+      const { clientX, clientY } = e
+      const { innerWidth, innerHeight } = window
+      
+      const x = (clientX / innerWidth - 0.5) * 2
+      const y = (clientY / innerHeight - 0.5) * 2
+      
+      setMousePosition({ x, y })
+    });
   }
 
   return (
@@ -51,7 +71,7 @@ export default function VisionAndCTA() {
         }}
       />
       
-      <div className="container mx-auto px-4 sm:px-6 relative z-10">
+      <div className="container relative z-10">
         <div className="max-w-4xl mx-auto">
           
           {/* Vision Row - Center on mobile, left on desktop */}
@@ -95,61 +115,37 @@ export default function VisionAndCTA() {
                 </motion.div>
                 
                 {/* Vision Headline */}
-                <div className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 overflow-hidden text-center sm:text-left">
-                  {["Today", "is", "just", "the"].map((word, index) => (
-                    <motion.span
-                      key={`vision-${index}`}
-                      className="inline-block mr-2"
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.5,
-                        delay: 0.2 + (0.1 * index),
-                        ease: [0.22, 1, 0.36, 1]
-                      }}
-                      viewport={{ once: true }}
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                  <motion.span
-                    className="inline-block bg-gradient-to-r from-[#0ef5dd] via-[#11d0be] to-[#1cabb8] bg-clip-text text-transparent"
-                    initial={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
-                    whileInView={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                    transition={{
-                      duration: 0.8,
-                      delay: 0.6,
-                      ease: [0.22, 1, 0.36, 1]
-                    }}
-                    viewport={{ once: true }}
-                  >
+                <motion.h3 
+                  className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 text-center sm:text-left"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: 0.2,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  viewport={{ once: true }}
+                >
+                  Today is just the{' '}
+                  <span className="bg-gradient-to-r from-[#0ef5dd] via-[#11d0be] to-[#1cabb8] bg-clip-text text-transparent">
                     start.
-                  </motion.span>
-                </div>
+                  </span>
+                </motion.h3>
 
                 {/* Vision Content */}
-                <div className="text-base text-gray-600 leading-relaxed overflow-hidden text-center sm:text-left">
-                  {["Friday", "begins", "in", "email", "but", "that&apos;s", "only", "step", "one.", "Our", "vision", "is", "to", "make", "every", "part", "of", "your", "social", "life", "easier,", "lighter,", "and", "more", "fulfilling,", "so", "your", "days,", "weeks,", "and", "years", "feel", "richer", "than", "the", "ones", "before."].map((word, index) => (
-                    <motion.span
-                      key={`vision-content-${index}`}
-                      className="inline-block mr-1"
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.4,
-                        delay: 1.0 + (0.03 * index),
-                        ease: [0.22, 1, 0.36, 1]
-                      }}
-                      viewport={{ once: true }}
-                    >
-                      {word === "Friday" ? (
-                        <span className="text-[#FF6B35] font-medium">{word}</span>
-                      ) : (
-                        word
-                      )}
-                    </motion.span>
-                  ))}
-                </div>
+                <motion.p 
+                  className="text-base text-gray-600 leading-relaxed text-center sm:text-left"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: 0.4,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  viewport={{ once: true }}
+                >
+                  <span className="text-[#FF6B35] font-medium">Friday</span> begins in email but that&apos;s only step one. Our vision is to make every part of your social life easier, lighter, and more fulfilling, so your days, weeks, and years feel richer than the ones before.
+                </motion.p>
               </motion.div>
             </div>
           </motion.div>
@@ -196,74 +192,37 @@ export default function VisionAndCTA() {
                 </motion.div>
                 
                 {/* Founder Headline */}
-                <div className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 overflow-hidden text-center sm:text-right">
-                  {["People", "should"].map((word, index) => (
-                    <motion.span
-                      key={`founder-${index}`}
-                      className="inline-block mr-2"
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.5,
-                        delay: 0.2 + (0.1 * index),
-                        ease: [0.22, 1, 0.36, 1]
-                      }}
-                      viewport={{ once: true }}
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                  <motion.span
-                    className="inline-block bg-gradient-to-r from-[#0ef5dd] via-[#11d0be] to-[#1cabb8] bg-clip-text text-transparent"
-                    initial={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
-                    whileInView={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                    transition={{
-                      duration: 0.8,
-                      delay: 0.5,
-                      ease: [0.22, 1, 0.36, 1]
-                    }}
-                    viewport={{ once: true }}
-                  >
+                <motion.h3 
+                  className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 text-center sm:text-right"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: 0.2,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  viewport={{ once: true }}
+                >
+                  People should{' '}
+                  <span className="bg-gradient-to-r from-[#0ef5dd] via-[#11d0be] to-[#1cabb8] bg-clip-text text-transparent">
                     meet up.
-                  </motion.span>
-                </div>
+                  </span>
+                </motion.h3>
                 
                 {/* Founder Content */}
-                <div className="text-base text-gray-600 leading-relaxed overflow-hidden text-center sm:text-right">
-                  <motion.span
-                    className="inline-block mr-1"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.4,
-                      delay: 0.8,
-                      ease: [0.22, 1, 0.36, 1]
-                    }}
-                    viewport={{ once: true }}
-                  >
-                    &quot;We
-                  </motion.span>
-                  {["started", "Friday", "because", "loneliness", "is", "rising,", "even", "though", "we&apos;re", "more", "&quot;connected&quot;", "than", "ever.", "We", "don&apos;t", "need", "new", "people", "we", "need", "to", "strengthen", "the", "bonds", "we", "already", "have.", "But", "today,", "even", "staying", "in", "touch", "feels", "like", "a", "burden,", "with", "endless", "texts,", "busy", "calendars,", "and", "plans", "that", "never", "happen.", "Friday", "exists", "to", "change", "that,", "by", "making", "it", "simple", "to", "talk,", "to", "meet,", "and", "to", "share", "life", "together", "again.&quot;"].map((word, index) => (
-                    <motion.span
-                      key={`founder-content-${index}`}
-                      className="inline-block mr-1"
-                      initial={{ opacity: 0, y: 15 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.3,
-                        delay: 0.9 + (0.02 * index),
-                        ease: [0.22, 1, 0.36, 1]
-                      }}
-                      viewport={{ once: true }}
-                    >
-                      {word === "Friday" ? (
-                        <span className="text-[#FF6B35] font-medium">{word}</span>
-                      ) : (
-                        word
-                      )}
-                    </motion.span>
-                  ))}
-                </div>
+                <motion.p 
+                  className="text-base text-gray-600 leading-relaxed text-center sm:text-right"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: 0.4,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  viewport={{ once: true }}
+                >
+                  &ldquo;We started <span className="text-[#FF6B35] font-medium">Friday</span> because loneliness is rising, even though we&apos;re more &ldquo;connected&rdquo; than ever. We don&apos;t need new people we need to strengthen the bonds we already have. But today, even staying in touch feels like a burden, with endless texts, busy calendars, and plans that never happen. <span className="text-[#FF6B35] font-medium">Friday</span> exists to change that, by making it simple to talk, to meet, and to share life together again.&rdquo;
+                </motion.p>
               </motion.div>
             </div>
           </motion.div>

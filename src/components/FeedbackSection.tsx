@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 export default function FeedbackSection() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const animationIdRef = useRef<number | undefined>(undefined)
   
   // Form states
   const [formData, setFormData] = useState({
@@ -30,20 +32,37 @@ export default function FeedbackSection() {
     }
     
     mediaQuery.addEventListener('change', handleMediaChange)
-    return () => mediaQuery.removeEventListener('change', handleMediaChange)
+    // Disable parallax during scroll for performance
+    let scrollTimer: NodeJS.Timeout;
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => setIsScrolling(false), 150);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaChange);
+      window.removeEventListener('scroll', handleScroll);
+      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+    };
   }, [])
   
-  // Track mouse position for parallax effect
+  // Track mouse position for parallax effect (throttled)
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (reducedMotion) return
+    if (reducedMotion || isScrolling) return
     
-    const { clientX, clientY } = e
-    const { innerWidth, innerHeight } = window
+    if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
     
-    const x = (clientX / innerWidth - 0.5) * 2
-    const y = (clientY / innerHeight - 0.5) * 2
-    
-    setMousePosition({ x, y })
+    animationIdRef.current = requestAnimationFrame(() => {
+      const { clientX, clientY } = e
+      const { innerWidth, innerHeight } = window
+      
+      const x = (clientX / innerWidth - 0.5) * 2
+      const y = (clientY / innerHeight - 0.5) * 2
+      
+      setMousePosition({ x, y })
+    });
   }
 
   // Handle form submission
@@ -125,7 +144,7 @@ export default function FeedbackSection() {
         }}
       />
       
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div className="relative z-10 container py-8 sm:py-10">
         <div className="grid grid-cols-1 gap-8 sm:gap-12 items-center">
           
           {/* Left Content - Marketing */}

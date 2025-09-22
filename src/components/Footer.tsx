@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -8,6 +8,8 @@ import Image from 'next/image'
 export default function Footer() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const animationIdRef = useRef<number | undefined>(undefined)
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -19,20 +21,38 @@ export default function Footer() {
     }
     
     mediaQuery.addEventListener('change', handleMediaChange)
-    return () => mediaQuery.removeEventListener('change', handleMediaChange)
+    
+    // Disable parallax during scroll for performance
+    let scrollTimer: NodeJS.Timeout;
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => setIsScrolling(false), 150);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaChange);
+      window.removeEventListener('scroll', handleScroll);
+      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+    };
   }, [])
   
-  // Track mouse position for parallax effect
+  // Track mouse position for parallax effect (throttled)
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (reducedMotion) return
+    if (reducedMotion || isScrolling) return
     
-    const { clientX, clientY } = e
-    const { innerWidth, innerHeight } = window
+    if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
     
-    const x = (clientX / innerWidth - 0.5) * 2
-    const y = (clientY / innerHeight - 0.5) * 2
-    
-    setMousePosition({ x, y })
+    animationIdRef.current = requestAnimationFrame(() => {
+      const { clientX, clientY } = e
+      const { innerWidth, innerHeight } = window
+      
+      const x = (clientX / innerWidth - 0.5) * 2
+      const y = (clientY / innerHeight - 0.5) * 2
+      
+      setMousePosition({ x, y })
+    });
   }
 
   // Scroll to specific sections using IDs
@@ -85,7 +105,7 @@ export default function Footer() {
         }}
       />
       
-      <div className="relative z-10 container mx-auto px-4 sm:px-6">
+      <div className="relative z-10 container">
         
         {/* Main Footer Content */}
         <div className="py-12 sm:py-16 lg:py-20">
