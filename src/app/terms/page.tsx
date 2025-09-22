@@ -15,8 +15,8 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4 text-[#11d0be]">1. Introduction</h2>
               <p className="text-gray-300 mb-4">
-                Welcome to Friday! These Terms and Conditions ("Terms") govern your use of the Friday application and services 
-                (collectively, the "Service") operated by MyFriday, Inc. ("we," "us," or "our").
+                Welcome to Friday! These Terms and Conditions (&quot;Terms&quot;) govern your use of the Friday application and services 
+                (collectively, the &quot;Service&quot;) operated by MyFriday, Inc. (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;).
               </p>
               <p className="text-gray-300">
                 By accessing or using the Service, you agree to be bound by these Terms. If you disagree with any part of 
@@ -36,7 +36,7 @@ export default function TermsPage() {
                 <li>In any way that violates any applicable federal, state, local, or international law or regulation.</li>
                 <li>To send, knowingly receive, upload, download, use, or re-use any material that does not comply with these Terms.</li>
                 <li>To impersonate or attempt to impersonate MyFriday, Inc., a MyFriday employee, another user, or any other person or entity.</li>
-                <li>To engage in any other conduct that restricts or inhibits anyone's use or enjoyment of the Service, or which may harm MyFriday, Inc. or users of the Service.</li>
+                <li>To engage in any other conduct that restricts or inhibits anyone&apos;s use or enjoyment of the Service, or which may harm MyFriday, Inc. or users of the Service.</li>
               </ul>
             </section>
 
@@ -116,7 +116,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4 text-[#11d0be]">10. Changes to Terms</h2>
               <p className="text-gray-300 mb-4">
-                We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material, we will try to provide at least 30 days' notice prior to any new terms taking effect.
+                We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material, we will try to provide at least 30 days&apos; notice prior to any new terms taking effect.
               </p>
               <p className="text-gray-300">
                 By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms.

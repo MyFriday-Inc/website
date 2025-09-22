@@ -118,7 +118,7 @@ export default function Footer() {
               
               {/* Description */}
               <p className="text-gray-300 text-lg leading-relaxed max-w-2xl mx-auto">
-                World's first Social Life AI Assistant. Making real connections easier.
+                World&apos;s first Social Life AI Assistant. Making real connections easier.
               </p>
             </motion.div>
             

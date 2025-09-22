@@ -55,7 +55,7 @@ export default function Stage4_MoreReplies({ onComplete }: Stage4Props) {
             F
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium text-gray-800 truncate">Re: Let's catch up soon! (Are you there? 👀)</div>
+            <div className="text-sm font-medium text-gray-800 truncate">Re: Let&apos;s catch up soon! (Are you there? 👀)</div>
             <div className="text-xs text-gray-500 truncate">Hey there, party people! 👋 Just checking if my last email got lost...</div>
           </div>
           <div className="text-xs text-gray-500 ml-2">{emailTimestamps.nudge}</div>
@@ -89,7 +89,7 @@ export default function Stage4_MoreReplies({ onComplete }: Stage4Props) {
                 </div>
                 
                 <div className="text-sm text-gray-800">
-                  <p>Sorry for the delay! Thursday at the park works for me. And no, I wasn't avoiding you Friday - just buried in work! 😂</p>
+                  <p>Sorry for the delay! Thursday at the park works for me. And no, I wasn&apos;t avoiding you Friday - just buried in work! 😂</p>
                 </div>
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function Stage4_MoreReplies({ onComplete }: Stage4Props) {
                 </div>
                 
                 <div className="text-sm text-gray-800">
-                  <p>Thursday works for me too! And Friday, your guilt trip worked perfectly - I'm impressed by your emotional manipulation skills! 😊</p>
+                  <p>Thursday works for me too! And Friday, your guilt trip worked perfectly - I&apos;m impressed by your emotional manipulation skills! 😊</p>
                 </div>
               </div>
             </div>

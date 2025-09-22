@@ -9,10 +9,8 @@ type Stage3_SentNudgeProps = {
 };
 
 export default function Stage3_SentNudge({ onComplete }: Stage3_SentNudgeProps) {
-  const { friends, emailSubject, nudgeContent, emailTimestamps } = useEmailDemo();
+  const { friends, nudgeContent, emailTimestamps } = useEmailDemo();
   
-  // Get Casey from friends
-  const casey = friends.find(f => f.name === 'Casey');
   
   // Auto-advance after showing the sent email for a few seconds
   useEffect(() => {

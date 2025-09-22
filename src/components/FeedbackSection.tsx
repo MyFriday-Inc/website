@@ -80,7 +80,7 @@ export default function FeedbackSection() {
       } else {
         setError(result.error || 'Failed to send feedback')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsSubmitting(false)
@@ -161,7 +161,7 @@ export default function FeedbackSection() {
                 transition={{ duration: 0.8, delay: 0.5 }}
                 viewport={{ once: true }}
               >
-                Friday's Future
+                Friday&apos;s Future
               </motion.span>
             </motion.h2>
 
@@ -176,7 +176,7 @@ export default function FeedbackSection() {
                 translateY: mousePosition.y * -5
               }}
             >
-              Since we're very early, your feedback is incredibly valuable. Share your thoughts, request a call, contribute to our vision, or explore partnership opportunities.
+              Since we&apos;re very early, your feedback is incredibly valuable. Share your thoughts, request a call, contribute to our vision, or explore partnership opportunities.
             </motion.p>
             
           </div>
@@ -239,7 +239,7 @@ export default function FeedbackSection() {
                     {/* Feedback Type */}
                     <div>
                       <label className="block text-xs font-medium text-gray-300 mb-2 sm:mb-1">
-                        What's this about?
+                        What&apos;s this about?
                       </label>
                       <div className="grid grid-cols-3 gap-2">
                         {feedbackTypes.map((type) => (
@@ -255,7 +255,7 @@ export default function FeedbackSection() {
                               type="radio"
                               value={type.value}
                               checked={formData.type === type.value}
-                              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'feedback' | 'comments' | 'call' | 'contribution' | 'partnership' }))}
                               className="sr-only"
                             />
                             <span className="text-white font-medium">{type.label}</span>
@@ -306,7 +306,7 @@ export default function FeedbackSection() {
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-2">Message Sent!</h3>
                       <p className="text-gray-400">
-                        Thanks for reaching out. We'll get back to you soon!
+                        Thanks for reaching out. We&apos;ll get back to you soon!
                       </p>
                     </div>
                     <button

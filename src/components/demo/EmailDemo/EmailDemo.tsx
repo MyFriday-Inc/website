@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { EmailDemoProvider, useEmailDemo } from './EmailDemoContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // Import stages
 import Stage1_Drafting from './stages/Stage1_Drafting';
@@ -30,7 +30,7 @@ function EmailDemoContent({ className = '' }: EmailDemoProps) {
   useEffect(() => {
     if (containerRef.current) {
       const observer = new ResizeObserver(entries => {
-        for (let entry of entries) {
+        for (const entry of entries) {
           // Get the height of the content
           const contentHeight = entry.contentRect.height;
           // Set a minimum height of 380px, but allow it to grow if content is larger

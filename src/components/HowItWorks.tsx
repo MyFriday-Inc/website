@@ -77,7 +77,7 @@ export default function HowItWorks() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-800 mb-0.5">Never Miss a <span className="text-[#FF6B35]">Connection</span></h3>
-                <p className="text-sm text-gray-600 leading-relaxed">Friday notices when you're overdue for a catchup and reaches out with perfect timing and charm.</p>
+                <p className="text-sm text-gray-600 leading-relaxed">Friday notices when you&apos;re overdue for a catchup and reaches out with perfect timing and charm.</p>
               </div>
             </motion.div>
             

@@ -82,14 +82,13 @@ export default function Stage1_Drafting({ onComplete }: Stage1Props) {
     };
     
     // Start the sequence
-    let isMounted = true;
     sequence().catch(err => {
       console.error("Animation sequence error:", err);
     });
     
     // Cleanup function to prevent state updates after unmount
     return () => {
-      isMounted = false;
+      // Component cleanup
     };
   }, [onComplete, friends]);
   

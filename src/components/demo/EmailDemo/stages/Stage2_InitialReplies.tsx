@@ -96,7 +96,7 @@ export default function Stage2_InitialReplies({ onComplete }: Stage2Props) {
                 </div>
                 
                 <div className="text-sm text-gray-800">
-                  <p>Tuesday works great for me! Central Coffee is my favorite spot. Can't wait to see everyone!</p>
+                  <p>Tuesday works great for me! Central Coffee is my favorite spot. Can&apos;t wait to see everyone!</p>
                 </div>
               </div>
             </div>
@@ -130,7 +130,7 @@ export default function Stage2_InitialReplies({ onComplete }: Stage2Props) {
                 </div>
                 
                 <div className="text-sm text-gray-800">
-                  <p>Thursday at the park sounds much better for me! I'd prefer the outdoor option.</p>
+                  <p>Thursday at the park sounds much better for me! I&apos;d prefer the outdoor option.</p>
                 </div>
               </div>
             </div>

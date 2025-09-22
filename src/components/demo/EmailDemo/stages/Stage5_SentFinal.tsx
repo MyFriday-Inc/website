@@ -9,7 +9,7 @@ type Stage5_SentFinalProps = {
 };
 
 export default function Stage5_SentFinal({ onComplete }: Stage5_SentFinalProps) {
-  const { friends, emailSubject, finalPlanContent, emailTimestamps } = useEmailDemo();
+  const { friends, finalPlanContent, emailTimestamps } = useEmailDemo();
   
   // Auto-advance and restart demo after showing the sent email for a few seconds
   useEffect(() => {

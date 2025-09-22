@@ -15,7 +15,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4 text-[#11d0be]">1. Introduction</h2>
               <p className="text-gray-300 mb-4">
-                MyFriday, Inc. ("we," "us," or "our") operates the Friday application and services (collectively, the "Service"). This Privacy Policy informs you of our policies regarding the collection, use, and disclosure of personal information when you use our Service.
+                MyFriday, Inc. (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the Friday application and services (collectively, the &quot;Service&quot;). This Privacy Policy informs you of our policies regarding the collection, use, and disclosure of personal information when you use our Service.
               </p>
               <p className="text-gray-300">
                 We value your privacy and are committed to protecting your personal information. By using the Service, you agree to the collection and use of information in accordance with this policy.
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
               
               <h3 className="text-xl font-semibold mb-2 text-gray-100">Usage Data</h3>
               <p className="text-gray-300 mb-4">
-                We may also collect information on how the Service is accessed and used ("Usage Data"). This may include:
+                We may also collect information on how the Service is accessed and used (&quot;Usage Data&quot;). This may include:
               </p>
               <ul className="list-disc pl-6 text-gray-300 mb-4 space-y-2">
                 <li>Types of features used</li>
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
                 <li>The right to withdraw consent at any time</li>
               </ul>
               <p className="text-gray-300">
-                To exercise these rights, please contact us using the information provided in the "Contact Us" section.
+                To exercise these rights, please contact us using the information provided in the &quot;Contact Us&quot; section.
               </p>
             </section>
 
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-[#11d0be]">9. Children's Privacy</h2>
+              <h2 className="text-2xl font-bold mb-4 text-[#11d0be]">9. Children&apos;s Privacy</h2>
               <p className="text-gray-300 mb-4">
                 Our Service is not directed to anyone under the age of 13. We do not knowingly collect personally identifiable information from children under 13. If we discover that a child under 13 has provided us with personal information, we will promptly delete this from our servers.
               </p>
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4 text-[#11d0be]">10. Changes to This Privacy Policy</h2>
               <p className="text-gray-300 mb-4">
-                We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
+                We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the &quot;Last updated&quot; date.
               </p>
               <p className="text-gray-300">
                 You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.

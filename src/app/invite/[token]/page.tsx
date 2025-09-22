@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import Header from '@/components/Header'
 
 interface City {
@@ -52,7 +53,7 @@ const RELATIONSHIP_OPTIONS = [
 
 export default function InvitePage() {
   const params = useParams()
-  const token = params.token as string
+  const token = params?.token as string
   
   // Invitation validation states
   const [isValidating, setIsValidating] = useState(true)
@@ -76,7 +77,6 @@ export default function InvitePage() {
   const [currentStep, setCurrentStep] = useState<'signup' | 'success'>('signup')
   const [user, setUser] = useState<User | null>(null)
   const [invitationUrl, setInvitationUrl] = useState('')
-  const [profileUpdateUrl, setProfileUpdateUrl] = useState('')
   
   // Friend adding states
   const [friendData, setFriendData] = useState({
@@ -118,9 +118,9 @@ export default function InvitePage() {
           setIsValidInvitation(false)
           setError(result.message || 'Invalid or expired invitation')
         }
-      } catch (error) {
-        setIsValidInvitation(false)
-        setError('Failed to validate invitation')
+    } catch {
+      setIsValidInvitation(false)
+      setError('Failed to validate invitation')
       } finally {
         setIsValidating(false)
       }
@@ -195,12 +195,11 @@ export default function InvitePage() {
       if (result.success) {
         setUser(result.user)
         setInvitationUrl(result.invitation.invitation_url)
-        setProfileUpdateUrl(result.profile_update_url)
         setCurrentStep('success')
       } else {
         setError(result.message || 'Signup failed')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsSigningUp(false)
@@ -276,12 +275,12 @@ export default function InvitePage() {
             </div>
             <h1 className="text-2xl font-bold text-white mb-4">Invalid Invitation</h1>
             <p className="text-gray-400 mb-6">{error}</p>
-            <a 
+            <Link 
               href="/" 
               className="inline-block px-6 py-3 bg-[#11d0be] hover:bg-[#0fb8a8] text-black font-bold rounded-lg transition-all duration-300"
             >
               Go to Homepage
-            </a>
+            </Link>
           </div>
         </div>
       </>
@@ -321,7 +320,7 @@ export default function InvitePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-bold text-white mb-2">You're Invited!</h1>
+                <h1 className="text-2xl font-bold text-white mb-2">You&apos;re Invited!</h1>
                 <p className="text-gray-300 mb-2">
                   <span className="text-[#11d0be] font-semibold">{invitation.inviter_name}</span> from{' '}
                   <span className="text-[#FF6B35]">{invitation.inviter_city}</span> has invited you to join Friday
@@ -456,7 +455,7 @@ export default function InvitePage() {
                       </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-white mb-2">Welcome to Friday, {user?.name}!</h3>
-                    <p className="text-gray-400">You're now connected with {invitation?.inviter_name}</p>
+                    <p className="text-gray-400">You&apos;re now connected with {invitation?.inviter_name}</p>
                   </div>
 
                   {/* Add Friends Section */}

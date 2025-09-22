@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import Header from '@/components/Header'
 
 interface City {
@@ -25,7 +26,7 @@ interface User {
 
 export default function ProfilePage() {
   const params = useParams()
-  const token = params.token as string
+  const token = params?.token as string
   
   // Profile states
   const [isLoading, setIsLoading] = useState(true)
@@ -82,7 +83,7 @@ export default function ProfilePage() {
           setIsValidToken(false)
           setError(result.message || 'Invalid profile token')
         }
-      } catch (error) {
+      } catch {
         setIsValidToken(false)
         setError('Failed to load profile')
       } finally {
@@ -172,7 +173,7 @@ export default function ProfilePage() {
     setError('')
     
     try {
-      const updateData: any = {}
+      const updateData: Record<string, unknown> = {}
       
       if (nameChanged) {
         updateData.name = formData.name
@@ -202,7 +203,7 @@ export default function ProfilePage() {
       } else {
         setError(result.message || 'Failed to update profile')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsUpdating(false)
@@ -249,12 +250,12 @@ export default function ProfilePage() {
             </div>
             <h1 className="text-2xl font-bold text-white mb-4">Invalid Profile Link</h1>
             <p className="text-gray-400 mb-6">{error}</p>
-            <a 
+            <Link 
               href="/" 
               className="inline-block px-6 py-3 bg-[#11d0be] hover:bg-[#0fb8a8] text-black font-bold rounded-lg transition-all duration-300"
             >
               Go to Homepage
-            </a>
+            </Link>
           </div>
         </div>
       </>
