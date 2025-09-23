@@ -11,10 +11,17 @@ All endpoints require an API key passed in the request header:
 X-API-Key: your-secure-api-key
 ```
 
+**Alternative authentication methods:**
+```
+Authorization: Bearer your-secure-api-key
+```
+
 Set your API key in Supabase:
 ```bash
 supabase secrets set WEBSITE_API_KEY=your-secure-api-key
 ```
+
+**Note:** Supabase Edge Functions only allow specific headers. Use `apikey` or `authorization` headers as shown above.
 
 ## Rate Limits
 
@@ -77,7 +84,7 @@ GET /cities?search=austin
 
 Creates a new user with structured location data and generates their invitation link.
 
-**Request:**
+**Request (Option 1 - Using city dropdown):**
 ```json
 {
   "name": "John Doe",
@@ -85,6 +92,18 @@ Creates a new user with structured location data and generates their invitation 
   "city_id": 123
 }
 ```
+
+**Request (Option 2 - Manual city input):**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "city": "Lubbock",
+  "state": "TX"
+}
+```
+
+**Note:** Provide either `city_id` OR `city + state`, not both.
 
 **Response:**
 ```json
@@ -113,6 +132,9 @@ Creates a new user with structured location data and generates their invitation 
 - `MISSING_FIELDS`: Name or email missing
 - `INVALID_EMAIL`: Invalid email format
 - `INVALID_CITY_ID`: Invalid or non-existent city_id
+- `CONFLICTING_LOCATION_INPUT`: Both city_id and city+state provided
+- `STATE_REQUIRED_WITH_CITY`: City provided without state
+- `CITY_REQUIRED_WITH_STATE`: State provided without city
 - `RATE_LIMITED`: Too many requests
 - `UNAUTHORIZED`: Invalid API key
 
@@ -122,7 +144,7 @@ Creates a new user with structured location data and generates their invitation 
 
 Directly connect with a friend when you know their email.
 
-**Request:**
+**Request (Option 1 - Using city dropdown):**
 ```json
 {
   "user_id": "uuid",
@@ -132,6 +154,20 @@ Directly connect with a friend when you know their email.
   "relationship_type": "friend"
 }
 ```
+
+**Request (Option 2 - Manual city input):**
+```json
+{
+  "user_id": "uuid",
+  "friend_email": "friend@example.com",
+  "friend_name": "Jane Smith",
+  "friend_city": "Boston",
+  "friend_state": "MA",
+  "relationship_type": "friend"
+}
+```
+
+**Note:** Location is optional. If provided, use either `friend_city_id` OR `friend_city + friend_state`, not both.
 
 **Response:**
 ```json
@@ -214,7 +250,7 @@ Validates token and returns invitation context for signup page.
 
 Complete signup through invitation (creates user + relationship).
 
-**Request:**
+**Request (Option 1 - Using city dropdown):**
 ```json
 {
   "token": "secure-random-token",
@@ -224,6 +260,20 @@ Complete signup through invitation (creates user + relationship).
   "relationship_type": "friend"
 }
 ```
+
+**Request (Option 2 - Manual city input):**
+```json
+{
+  "token": "secure-random-token",
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "city": "Austin",
+  "state": "TX",
+  "relationship_type": "friend"
+}
+```
+
+**Note:** Location is optional. If provided, use either `city_id` OR `city + state`, not both.
 
 **Response:**
 ```json
@@ -298,13 +348,24 @@ Update user profile via email token. Only name and location updates are allowed.
 
 **Authentication**: Token + API key + Supabase anon key required
 
-**Request:**
+**Request (Option 1 - Using city dropdown):**
 ```json
 {
   "name": "John Smith",
   "city_id": 456
 }
 ```
+
+**Request (Option 2 - Manual city input):**
+```json
+{
+  "name": "John Smith",
+  "city": "Dallas",
+  "state": "TX"
+}
+```
+
+**Note:** All fields are optional. If updating location, use either `city_id` OR `city + state`, not both.
 
 **Response:**
 ```json
@@ -344,6 +405,9 @@ All endpoints return standardized error responses:
 - `MISSING_FIELDS`: Required fields not provided
 - `INVALID_EMAIL`: Email format validation failed
 - `INVALID_CITY_ID`: Invalid or non-existent city_id
+- `CONFLICTING_LOCATION_INPUT`: Both city_id and city+state provided
+- `STATE_REQUIRED_WITH_CITY`: City provided without state
+- `CITY_REQUIRED_WITH_STATE`: State provided without city
 - `USER_EXISTS`: Email already registered
 - `INVALID_TOKEN`: Token invalid, expired, or used
 - `MISSING_SEARCH_TERM`: Search parameter missing
@@ -444,7 +508,7 @@ const citiesResponse = await fetch('https://your-project.supabase.co/functions/v
 const citiesResult = await citiesResponse.json();
 const selectedCity = citiesResult.cities[0]; // User selects Austin, TX
 
-// 2. Create user with structured location data
+// 2a. Create user with city dropdown selection
 const signupResponse = await fetch('https://your-project.supabase.co/functions/v1/signup', {
   method: 'POST',
   headers: {
@@ -455,6 +519,21 @@ const signupResponse = await fetch('https://your-project.supabase.co/functions/v
     name: 'John Doe',
     email: 'john@example.com',
     city_id: selectedCity.id // 123
+  })
+});
+
+// 2b. Alternative: Create user with manual city input
+const signupResponseManual = await fetch('https://your-project.supabase.co/functions/v1/signup', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.FRIDAY_API_KEY
+  },
+  body: JSON.stringify({
+    name: 'John Doe',
+    email: 'john@example.com',
+    city: 'Lubbock',
+    state: 'TX'
   })
 });
 
@@ -488,7 +567,7 @@ const profileResponse = await fetch(`https://your-project.supabase.co/functions/
   }
 });
 
-// 4. Update user profile
+// 4a. Update user profile with city dropdown
 const updateResponse = await fetch(`https://your-project.supabase.co/functions/v1/profile/${token}`, {
   method: 'PUT',
   headers: {
@@ -499,6 +578,21 @@ const updateResponse = await fetch(`https://your-project.supabase.co/functions/v
   body: JSON.stringify({
     name: 'John Smith',
     city_id: 456
+  })
+});
+
+// 4b. Alternative: Update profile with manual city input
+const updateResponseManual = await fetch(`https://your-project.supabase.co/functions/v1/profile/${token}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.FRIDAY_API_KEY,
+    'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
+  },
+  body: JSON.stringify({
+    name: 'John Smith',
+    city: 'Dallas',
+    state: 'TX'
   })
 });
 ```

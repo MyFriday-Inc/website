@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import { US_STATES } from '@/utils/states'
 
 interface City {
   id: number
@@ -61,13 +62,15 @@ export default function InvitePageClient({ token }: { token: string }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    city_id: null as number | null
+    city_id: null as number | null,
+    city: '',
+    state: ''
   })
   const [citySearch, setCitySearch] = useState('')
   const [cities, setCities] = useState<City[]>([])
-  const [selectedCity, setSelectedCity] = useState<City | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [showCities, setShowCities] = useState(false)
+  const [useManualLocation, setUseManualLocation] = useState(false)
   const [relationshipType, setRelationshipType] = useState('Friends')
   
   // Flow states
@@ -174,7 +177,12 @@ export default function InvitePageClient({ token }: { token: string }) {
       const result = await response.json()
       if (result.success) {
         setCities(result.cities)
-        setShowCities(true)
+        setShowCities(result.cities.length > 0)
+        
+        // If no cities found and user has typed enough, enable manual mode
+        if (result.cities.length === 0 && searchTerm.length >= 3) {
+          setUseManualLocation(true)
+        }
       }
     } catch (error) {
       // Don't show error for aborted requests
@@ -189,8 +197,8 @@ export default function InvitePageClient({ token }: { token: string }) {
   // Handle city search input with debouncing
   const handleCitySearch = (value: string) => {
     setCitySearch(value)
-    setSelectedCity(null)
-    setFormData(prev => ({ ...prev, city_id: null }))
+    setFormData(prev => ({ ...prev, city_id: null, city: value }))
+    setUseManualLocation(false)
     
     // Clear previous debounce timer
     if (debounceTimer.current) {
@@ -205,17 +213,31 @@ export default function InvitePageClient({ token }: { token: string }) {
 
   // Select city
   const selectCity = (city: City) => {
-    setSelectedCity(city)
     setCitySearch(city.display)
-    setFormData(prev => ({ ...prev, city_id: city.id }))
+    setFormData(prev => ({ 
+      ...prev, 
+      city_id: city.id, 
+      city: city.city,
+      state: city.state 
+    }))
     setShowCities(false)
+    setUseManualLocation(false)
   }
 
   // Handle invitation redemption
   const handleRedeemInvitation = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.email || !formData.city_id) {
+    
+    // Validate basic fields
+    if (!formData.name || !formData.email) {
       setError('Please fill in all fields')
+      return
+    }
+    
+    // Validate location - either city_id or city+state required
+    const hasValidLocation = formData.city_id || (formData.city && formData.state)
+    if (!hasValidLocation) {
+      setError('Please select your city and state')
       return
     }
 
@@ -223,15 +245,21 @@ export default function InvitePageClient({ token }: { token: string }) {
     setError('')
     
     try {
+      // Prepare API payload - either city_id or city+state
+      const payload = {
+        token,
+        name: formData.name,
+        email: formData.email,
+        relationship_type: relationshipType,
+        ...(formData.city_id 
+          ? { city_id: formData.city_id }
+          : { city: formData.city, state: formData.state }
+        )
+      }
+      
       const result = await apiCall('/redeem-invitation', {
         method: 'POST',
-        body: JSON.stringify({
-          token,
-          name: formData.name,
-          email: formData.email,
-          city_id: formData.city_id,
-          relationship_type: relationshipType
-        })
+        body: JSON.stringify(payload)
       })
       
       if (result.success) {
@@ -255,15 +283,19 @@ export default function InvitePageClient({ token }: { token: string }) {
 
     setIsAddingFriend(true)
     try {
+      // Prepare payload - do not send location data for friends added via email
+      // The friend will set their own location when they sign up
+      const payload = {
+        user_id: user.id,
+        friend_email: friendData.email,
+        friend_name: friendData.name,
+        relationship_type: friendRelationshipType
+        // Note: Location is intentionally omitted - friends set their own location during signup
+      }
+      
       const result = await apiCall('/add-friend', {
         method: 'POST',
-        body: JSON.stringify({
-          user_id: user.id,
-          friend_email: friendData.email,
-          friend_name: friendData.name,
-          friend_city_id: selectedCity?.id || formData.city_id,
-          relationship_type: friendRelationshipType
-        })
+        body: JSON.stringify(payload)
       })
       
       if (result.success && result.friend) {
@@ -450,7 +482,30 @@ export default function InvitePageClient({ token }: { token: string }) {
                         Searching...
                       </div>
                     )}
+                    
                   </div>
+
+                  {/* State Selection - Show when manual location or city is selected */}
+                  {(useManualLocation || formData.state) && (
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        State
+                      </label>
+                      <select
+                        value={formData.state}
+                        onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
+                        required={useManualLocation}
+                      >
+                        <option value="" className="bg-gray-900 text-white">Select your state</option>
+                        {US_STATES.map((state) => (
+                          <option key={state.code} value={state.code} className="bg-gray-900 text-white">
+                            {state.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Relationship Type */}
                   <div>
@@ -481,7 +536,7 @@ export default function InvitePageClient({ token }: { token: string }) {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={isSigningUp || !formData.name || !formData.email || !formData.city_id}
+                    disabled={isSigningUp || !formData.name || !formData.email || (!formData.city_id && (!formData.city || !formData.state))}
                     className="w-full py-3 bg-[#11d0be] hover:bg-[#0fb8a8] disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-bold rounded-lg transition-all duration-300"
                   >
                     {isSigningUp ? 'Joining Friday...' : 'Join Friday'}

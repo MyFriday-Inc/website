@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import { US_STATES } from '@/utils/states'
 
 interface City {
   id: number
@@ -36,13 +37,16 @@ export default function ProfilePage() {
   // Form states
   const [formData, setFormData] = useState({
     name: '',
-    city_id: null as number | null
+    city_id: null as number | null,
+    city: '',
+    state: ''
   })
   const [citySearch, setCitySearch] = useState('')
   const [cities, setCities] = useState<City[]>([])
   const [selectedCity, setSelectedCity] = useState<City | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [showCities, setShowCities] = useState(false)
+  const [useManualLocation, setUseManualLocation] = useState(false)
   
   // UI states
   const [isEditing, setIsEditing] = useState(false)
@@ -80,7 +84,9 @@ export default function ProfilePage() {
           setUser(result.user)
           setFormData({
             name: result.user.name,
-            city_id: null // We'll need to find the city_id if they want to change location
+            city_id: null, // We'll need to find the city_id if they want to change location
+            city: result.user.location_city,
+            state: result.user.location_state
           })
           setCitySearch(`${result.user.location_city}, ${result.user.location_state}`)
         } else {
@@ -143,7 +149,12 @@ export default function ProfilePage() {
       const result = await response.json()
       if (result.success) {
         setCities(result.cities)
-        setShowCities(true)
+        setShowCities(result.cities.length > 0)
+        
+        // If no cities found and user has typed enough, enable manual mode
+        if (result.cities.length === 0 && searchTerm.length >= 3) {
+          setUseManualLocation(true)
+        }
       }
     } catch (error) {
       // Don't show error for aborted requests
@@ -159,7 +170,8 @@ export default function ProfilePage() {
   const handleCitySearch = (value: string) => {
     setCitySearch(value)
     setSelectedCity(null)
-    setFormData(prev => ({ ...prev, city_id: null }))
+    setFormData(prev => ({ ...prev, city_id: null, city: value }))
+    setUseManualLocation(false)
     
     // Clear previous debounce timer
     if (debounceTimer.current) {
@@ -176,8 +188,14 @@ export default function ProfilePage() {
   const selectCity = (city: City) => {
     setSelectedCity(city)
     setCitySearch(city.display)
-    setFormData(prev => ({ ...prev, city_id: city.id }))
+    setFormData(prev => ({ 
+      ...prev, 
+      city_id: city.id, 
+      city: city.city,
+      state: city.state 
+    }))
     setShowCities(false)
+    setUseManualLocation(false)
   }
 
   // Start editing
@@ -193,7 +211,9 @@ export default function ProfilePage() {
     if (user) {
       setFormData({
         name: user.name,
-        city_id: null
+        city_id: null,
+        city: user.location_city,
+        state: user.location_state
       })
       setCitySearch(`${user.location_city}, ${user.location_state}`)
       setSelectedCity(null)
@@ -208,7 +228,7 @@ export default function ProfilePage() {
     
     // Check if any changes were made
     const nameChanged = formData.name !== user?.name
-    const locationChanged = selectedCity !== null
+    const locationChanged = selectedCity !== null || (formData.city !== user?.location_city || formData.state !== user?.location_state)
     
     if (!nameChanged && !locationChanged) {
       setError('No changes to save')
@@ -225,8 +245,13 @@ export default function ProfilePage() {
         updateData.name = formData.name
       }
       
-      if (locationChanged && formData.city_id) {
-        updateData.city_id = formData.city_id
+      if (locationChanged) {
+        if (formData.city_id) {
+          updateData.city_id = formData.city_id
+        } else if (formData.city && formData.state) {
+          updateData.city = formData.city
+          updateData.state = formData.state
+        }
       }
       
       const result = await apiCall(`/profile/${token}`, {
@@ -242,7 +267,9 @@ export default function ProfilePage() {
         // Update form state with new data
         setFormData({
           name: result.user.name,
-          city_id: null
+          city_id: null,
+          city: result.user.location_city,
+          state: result.user.location_state
         })
         setCitySearch(`${result.user.location_city}, ${result.user.location_state}`)
         setSelectedCity(null)
@@ -490,7 +517,30 @@ export default function ProfilePage() {
                         New location: {selectedCity.display}
                       </p>
                     )}
+                    
                   </div>
+
+                  {/* State Selection - Show when manual location or city is selected */}
+                  {(useManualLocation || formData.state) && (
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        State
+                      </label>
+                      <select
+                        value={formData.state}
+                        onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
+                        required={useManualLocation}
+                      >
+                        <option value="" className="bg-gray-900 text-white">Select your state</option>
+                        {US_STATES.map((state) => (
+                          <option key={state.code} value={state.code} className="bg-gray-900 text-white">
+                            {state.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Error Message */}
                   {error && (

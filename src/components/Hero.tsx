@@ -202,10 +202,10 @@ export default function Hero() {
 
             {/* Subheading */}
             <motion.p 
-              className="text-sm sm:text-base md:text-lg text-gray-300 leading-relaxed max-w-md sm:max-w-sm mx-auto md:mx-0"
+              className="text-sm sm:text-base md:text-lg text-gray-300 leading-relaxed max-w-lg mx-auto md:mx-0"
               variants={itemVariants}
             >
-              Our first step in a big vision, Friday lives in email today. Get early access.
+              Turning &ldquo;we should hang out&rdquo; into actual plans. Friday knows your circles, suggests the perfect spots, and makes sure you actually show up.
             </motion.p>
             
             {/* CTA Section */}

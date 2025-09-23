@@ -12,14 +12,14 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   metadataBase: new URL('https://myfriday.app'),
   title: 'World\'s 1st Social Life AI Assistant',
-  description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter. The world\'s first AI-powered social life assistant.',
+  description: 'Friday automates your social life so relationships don\'t drift. Turning "we should hang out" into actual plans with proactive suggestions and smart coordination.',
   icons: {
     icon: '/images/logo1.png',
     apple: '/images/logo1.png',
   },
   openGraph: {
     title: 'World\'s 1st Social Life AI Assistant',
-    description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter.',
+    description: 'Friday automates your social life so relationships don\'t drift. Turning "we should hang out" into actual plans.',
     images: [
       {
         url: '/images/social-share.png',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'World\'s 1st Social Life AI Assistant',
-    description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter.',
+    description: 'Friday automates your social life so relationships don\'t drift. Turning "we should hang out" into actual plans.',
     images: [
       {
         url: '/images/social-share.png',

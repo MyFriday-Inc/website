@@ -36,13 +36,14 @@ export default function HowItWorks() {
       }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+    const currentSection = sectionRef.current;
+    if (currentSection) {
+      observer.observe(currentSection);
     }
 
     return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
+      if (currentSection) {
+        observer.unobserve(currentSection);
       }
     };
   }, [isInView, shouldLoadDemo]);
@@ -126,7 +127,7 @@ export default function HowItWorks() {
             variants={itemVariants}
           >
             <p>
-              Friday lives in your <span className="text-[#FF6B35] font-medium">inbox</span>, automating your social life so you don&apos;t have to. It lines up memorable experiences whether a virtual game night or a local hangout with a touch of wit and just enough <span className="text-[#FF6B35] font-medium">sarcasm</span> to feel human.
+              Friday lives in your <span className="text-[#FF6B35] font-medium">inbox</span>, proactively strengthening your existing relationships. It tracks your circles, suggests meaningful hangouts, and coordinates plans so you stay connected with the people who matter most.
             </p>
           </motion.div>
         </motion.div>
@@ -149,12 +150,13 @@ export default function HowItWorks() {
             >
               <div className="flex-shrink-0 w-8 h-8 bg-[#11d0be]/10 rounded-lg flex items-center justify-center mr-4 group-hover:bg-[#11d0be]/20 transition-colors duration-300">
                 <svg className="w-4 h-4 text-[#11d0be]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path fillRule="evenodd" d="M1.885.511a1.745 1.745 0 012.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 00.178.643l2.457 2.457a.678.678 0 00.644.178l2.189-.547a1.745 1.745 0 011.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 01-7.01-4.42 18.634 18.634 0 01-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-800 mb-0.5">Plans That <span className="text-[#FF6B35]">Stick</span></h3>
-                <p className="text-sm text-gray-600 leading-relaxed">Friday knows when it&apos;s been <span className="text-[#FF6B35] font-medium">too long</span> and jumps in with a full plan the place, the time, and the activity so friendships don&apos;t drift and every hangout is one you&apos;ll actually look forward to.</p>
+                <h3 className="text-base font-bold text-gray-800 mb-0.5">Relationship <span className="text-[#FF6B35]">Radar</span></h3>
+                <p className="text-sm text-gray-600 leading-relaxed">Friday tracks when it&apos;s been <span className="text-[#FF6B35] font-medium">too long</span> and proactively suggests hangouts with specific people in your circles, so relationships don&apos;t drift and friendships stay strong.</p>
               </div>
             </motion.div>
             
@@ -165,12 +167,12 @@ export default function HowItWorks() {
             >
               <div className="flex-shrink-0 w-8 h-8 bg-[#11d0be]/10 rounded-lg flex items-center justify-center mr-4 group-hover:bg-[#11d0be]/20 transition-colors duration-300">
                 <svg className="w-4 h-4 text-[#11d0be]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-800 mb-0.5">Smart, <span className="text-[#FF6B35]">Memorable</span> Picks</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">Not vague &ldquo;what works for you?&rdquo; back-and-forth Friday suggests <span className="text-[#FF6B35] font-medium">real experiences</span>: the bar you&apos;ve been meaning to try, a trail with the best fall colors, a board game night that turns into a tradition.</p>
+                <h3 className="text-base font-bold text-gray-800 mb-0.5">Vibe-Based <span className="text-[#FF6B35]">Venues</span></h3>
+                <p className="text-sm text-gray-600 leading-relaxed">Not just any restaurant Friday suggests places based on <span className="text-[#FF6B35] font-medium">what people actually say</span> about them, the energy they create, or perfect virtual alternatives that match the mood you&apos;re going for.</p>
               </div>
             </motion.div>
             
@@ -181,12 +183,12 @@ export default function HowItWorks() {
             >
               <div className="flex-shrink-0 w-8 h-8 bg-[#11d0be]/10 rounded-lg flex items-center justify-center mr-4 group-hover:bg-[#11d0be]/20 transition-colors duration-300">
                 <svg className="w-4 h-4 text-[#11d0be]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414-1.414L9 5.586 7.707 4.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 00-1.414-1.414L10 4.586l2.293-2.293z" clipRule="evenodd" />
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-800 mb-0.5">Friendly <span className="text-[#FF6B35]">Persistence</span></h3>
-                <p className="text-sm text-gray-600 leading-relaxed">When replies stall, Friday keeps the plan alive with <span className="text-[#FF6B35] font-medium">gentle nudges</span> until it becomes a memory worth keeping.</p>
+                <h3 className="text-base font-bold text-gray-800 mb-0.5">Circle <span className="text-[#FF6B35]">Coordination</span></h3>
+                <p className="text-sm text-gray-600 leading-relaxed">Friday knows your different groups and coordinates within them, or suggests <span className="text-[#FF6B35] font-medium">cross-circle connections</span> when it makes sense to deepen relationships and expand your social world.</p>
               </div>
             </motion.div>
             
@@ -219,7 +221,7 @@ export default function HowItWorks() {
           transition={{ duration: 0.6, delay: 0.4 }}
         >
           <p className="text-lg text-gray-700 font-medium">
-            No more <span className="text-[#FF6B35] font-semibold">47-message group chats</span> about brunch Friday just makes it happen.
+            No more <span className="text-[#FF6B35] font-semibold">47-message group chats</span> about brunch or relationships drifting apart Friday just makes it happen.
           </p>
         </motion.div>
         

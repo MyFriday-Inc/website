@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import Modal from '@/components/Modal'
 import Link from 'next/link'
 import { useInView } from '@/hooks/useInView'
+import { US_STATES } from '@/utils/states'
 
 interface City {
   id: number
@@ -60,13 +61,15 @@ export default function SignupSection() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    city_id: null as number | null
+    city_id: null as number | null,
+    city: '',
+    state: ''
   })
   const [citySearch, setCitySearch] = useState('')
   const [cities, setCities] = useState<City[]>([])
-  const [selectedCity, setSelectedCity] = useState<City | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [showCities, setShowCities] = useState(false)
+  const [useManualLocation, setUseManualLocation] = useState(false)
   
   // Flow states
   const [currentStep, setCurrentStep] = useState<'signup' | 'success'>('signup')
@@ -195,7 +198,12 @@ export default function SignupSection() {
       const result = await response.json()
       if (result.success) {
         setCities(result.cities)
-        setShowCities(true)
+        setShowCities(result.cities.length > 0)
+        
+        // If no cities found and user has typed enough, enable manual mode
+        if (result.cities.length === 0 && searchTerm.length >= 3) {
+          setUseManualLocation(true)
+        }
       }
     } catch (error) {
       // Don't show error for aborted requests
@@ -210,8 +218,8 @@ export default function SignupSection() {
   // Handle city search input with debouncing
   const handleCitySearch = (value: string) => {
     setCitySearch(value)
-    setSelectedCity(null)
-    setFormData(prev => ({ ...prev, city_id: null }))
+    setFormData(prev => ({ ...prev, city_id: null, city: value }))
+    setUseManualLocation(false)
     
     // Clear previous debounce timer
     if (debounceTimer.current) {
@@ -226,17 +234,31 @@ export default function SignupSection() {
 
   // Select city
   const selectCity = (city: City) => {
-    setSelectedCity(city)
     setCitySearch(city.display)
-    setFormData(prev => ({ ...prev, city_id: city.id }))
+    setFormData(prev => ({ 
+      ...prev, 
+      city_id: city.id, 
+      city: city.city,
+      state: city.state 
+    }))
     setShowCities(false)
+    setUseManualLocation(false)
   }
 
   // Handle signup
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.email || !formData.city_id) {
+    
+    // Validate basic fields
+    if (!formData.name || !formData.email) {
       setError('Please fill in all fields')
+      return
+    }
+    
+    // Validate location - either city_id or city+state required
+    const hasValidLocation = formData.city_id || (formData.city && formData.state)
+    if (!hasValidLocation) {
+      setError('Please select your city and state')
       return
     }
     
@@ -249,9 +271,19 @@ export default function SignupSection() {
     setError('')
     
     try {
+      // Prepare API payload - either city_id or city+state
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        ...(formData.city_id 
+          ? { city_id: formData.city_id }
+          : { city: formData.city, state: formData.state }
+        )
+      }
+      
       const result = await apiCall('/signup', {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
       
       if (result.success) {
@@ -275,15 +307,19 @@ export default function SignupSection() {
 
     setIsAddingFriend(true)
     try {
+      // Prepare payload - do not send location data for friends added via email
+      // The friend will set their own location when they sign up
+      const payload = {
+        user_id: user.id,
+        friend_email: friendData.email,
+        friend_name: friendData.name,
+        relationship_type: friendRelationshipType
+        // Note: Location is intentionally omitted - friends set their own location during signup
+      }
+      
       const result = await apiCall('/add-friend', {
         method: 'POST',
-        body: JSON.stringify({
-          user_id: user.id,
-          friend_email: friendData.email,
-          friend_name: friendData.name,
-          friend_city_id: selectedCity?.id || formData.city_id,
-          relationship_type: friendRelationshipType
-        })
+        body: JSON.stringify(payload)
       })
       
       if (result.success && result.friend) {
@@ -511,7 +547,36 @@ export default function SignupSection() {
                           Searching...
                         </div>
                       )}
+                      
                     </motion.div>
+
+                    {/* State Selection - Show when manual location or city is selected */}
+                    {(useManualLocation || formData.state) && (
+                      <motion.div 
+                        className="relative"
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          State
+                        </label>
+                        <motion.select
+                          value={formData.state}
+                          onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent transition-all duration-200 hover:bg-white/15 text-sm"
+                          required={useManualLocation}
+                          whileFocus={{ scale: 1.01, borderColor: "rgba(17, 208, 190, 0.5)" }}
+                        >
+                          <option value="" className="bg-gray-900 text-white">Select your state</option>
+                          {US_STATES.map((state) => (
+                            <option key={state.code} value={state.code} className="bg-gray-900 text-white">
+                              {state.name}
+                            </option>
+                          ))}
+                        </motion.select>
+                      </motion.div>
+                    )}
 
                     {/* Error Message */}
                     {error && (
@@ -569,7 +634,7 @@ export default function SignupSection() {
                     >
                       <motion.button
                         type="submit"
-                        disabled={isSigningUp || !formData.name || !formData.email || !formData.city_id}
+                        disabled={isSigningUp || !formData.name || !formData.email || (!formData.city_id && (!formData.city || !formData.state))}
                         className="w-full py-2.5 bg-[#11d0be] hover:bg-[#0fb8a8] disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-semibold rounded-full transition-all duration-300 text-sm shadow-sm"
                         whileHover={{ scale: 1.03, boxShadow: "0 10px 25px rgba(17, 208, 190, 0.3)" }}
                         whileTap={{ scale: 0.97 }}

@@ -2,11 +2,36 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const pathname = usePathname();
+
+  // Check if we're on the homepage
+  const isHomePage = pathname === '/';
+
+  // Navigation helper functions
+  const navigateToHome = () => {
+    if (isHomePage) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.location.href = '/';
+    }
+  };
+
+  const navigateToSection = (sectionId: string) => {
+    if (isHomePage) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      window.location.href = `/#${sectionId}`;
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -78,7 +103,7 @@ export default function Header() {
           
           {/* Logo and Brand */}
           <button 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onClick={navigateToHome}
             className={`relative flex items-center hover:opacity-80 transition-all duration-700 py-1 ${
               isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}
@@ -100,7 +125,7 @@ export default function Header() {
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <button 
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={navigateToHome}
               className={`text-white hover:text-[#FF6B35] transition-all duration-700 text-sm font-medium ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
@@ -109,10 +134,7 @@ export default function Header() {
               Home
             </button>
             <button 
-              onClick={() => {
-                const section = document.getElementById('vision-and-cta');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onClick={() => navigateToSection('vision-and-cta')}
               className={`text-white hover:text-[#FF6B35] transition-all duration-700 text-sm font-medium ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
@@ -121,10 +143,7 @@ export default function Header() {
               About
             </button>
             <button 
-              onClick={() => {
-                const section = document.getElementById('feedback-section');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onClick={() => navigateToSection('feedback-section')}
               className={`text-white hover:text-[#FF6B35] transition-all duration-700 text-sm font-medium ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
@@ -136,10 +155,7 @@ export default function Header() {
 
           {/* CTA Button */}
           <button 
-            onClick={() => {
-              const section = document.getElementById('signup-section');
-              if (section) section.scrollIntoView({ behavior: 'smooth' });
-            }}
+            onClick={() => navigateToSection('signup-section')}
             className={`hidden md:block bg-gradient-to-r from-[#0ea89a] to-[#0d9488] hover:from-[#0d9488] hover:to-[#0f766e] text-white font-semibold px-4 py-2 rounded-full transition-all duration-700 text-sm shadow-lg ${
               isLoaded ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4'
             }`}
@@ -176,7 +192,7 @@ export default function Header() {
           <div className="px-4 py-6 space-y-4">
             <button 
               onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                navigateToHome();
                 setMobileMenuOpen(false);
               }}
               className="block w-full text-left text-white hover:text-[#FF6B35] transition-colors text-lg font-medium py-2"
@@ -185,8 +201,7 @@ export default function Header() {
             </button>
             <button 
               onClick={() => {
-                const section = document.getElementById('vision-and-cta');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
+                navigateToSection('vision-and-cta');
                 setMobileMenuOpen(false);
               }}
               className="block w-full text-left text-white hover:text-[#FF6B35] transition-colors text-lg font-medium py-2"
@@ -195,8 +210,7 @@ export default function Header() {
             </button>
             <button 
               onClick={() => {
-                const section = document.getElementById('feedback-section');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
+                navigateToSection('feedback-section');
                 setMobileMenuOpen(false);
               }}
               className="block w-full text-left text-white hover:text-[#FF6B35] transition-colors text-lg font-medium py-2"
@@ -206,8 +220,7 @@ export default function Header() {
             <div className="pt-4 border-t border-gray-800/50">
               <button 
                 onClick={() => {
-                  const section = document.getElementById('signup-section');
-                  if (section) section.scrollIntoView({ behavior: 'smooth' });
+                  navigateToSection('signup-section');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full bg-gradient-to-r from-[#0ea89a] to-[#0d9488] hover:from-[#0d9488] hover:to-[#0f766e] text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 text-sm shadow-lg"
