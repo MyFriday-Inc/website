@@ -10,6 +10,7 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://myfriday.app'),
   title: 'World\'s 1st Social Life AI Assistant',
   description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter. The world\'s first AI-powered social life assistant.',
   icons: {
