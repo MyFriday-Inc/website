@@ -19,13 +19,27 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'World\'s 1st Social Life AI Assistant',
     description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter.',
-    images: ['/images/social-share.png'],
+    images: [
+      {
+        url: '/images/social-share.png',
+        width: 1200,
+        height: 630,
+        alt: 'Friday - World\'s 1st Social Life AI Assistant',
+      }
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'World\'s 1st Social Life AI Assistant',
     description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter.',
-    images: ['/images/social-share.png'],
+    images: [
+      {
+        url: '/images/social-share.png',
+        width: 1200,
+        height: 630,
+        alt: 'Friday - World\'s 1st Social Life AI Assistant',
+      }
+    ],
   },
 }
 
