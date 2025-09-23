@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import InvitePageClient from './invite-client'
 
 // Server-side metadata generation for social sharing
-export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
-  const { token } = params
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params
   
   try {
     // Fetch invitation details for metadata
@@ -76,6 +76,7 @@ export async function generateMetadata({ params }: { params: { token: string } }
 }
 
 // Server component wrapper that renders the client component
-export default function InvitePage({ params }: { params: { token: string } }) {
-  return <InvitePageClient token={params.token} />
+export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params
+  return <InvitePageClient token={token} />
 }
