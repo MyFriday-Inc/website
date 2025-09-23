@@ -618,14 +618,20 @@ export default function SignupSection() {
                       >
                         Welcome, {user?.name}!
                       </motion.h3>
-                      <motion.p 
-                        className="text-sm text-gray-300"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5, delay: 0.5 }}
+
+                      {/* Email Notification */}
+                      <motion.div 
+                        className="bg-[#11d0be]/10 border border-[#11d0be]/20 rounded-lg p-4 mb-4"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.45 }}
                       >
-                        You&apos;re on the waitlist
-                      </motion.p>
+                        <p className="text-sm text-gray-300 text-center">
+                          📧 <span className="font-medium text-white">Check your email!</span> You&apos;ll receive a welcome message from{' '}
+                          <span className="text-[#11d0be] font-semibold">hello@myfriday.app</span> with important links.{' '}
+                          <span className="font-medium text-white">Star this email</span> so you don&apos;t lose it - and check your spam folder if you don&apos;t see it!
+                        </p>
+                      </motion.div>
                       <motion.p 
                         className="text-xs text-gray-400 mt-1"
                         initial={{ opacity: 0 }}
