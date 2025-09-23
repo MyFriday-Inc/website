@@ -33,15 +33,15 @@ interface Friend {
 }
 
 const RELATIONSHIP_OPTIONS = [
-  'Mom',
-  'Dad', 
-  'Family',
   'Spouse',
+  'Dating',
+  'Family',
   'Close Friends',
   'Friends',
+  'Colleague',
+  'Roommate',
   'Acquaintance',
-  'Just Met',
-  'Partner'
+  'Just Met'
 ]
 
 export default function SignupSection() {

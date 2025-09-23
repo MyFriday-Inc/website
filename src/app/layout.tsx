@@ -10,12 +10,23 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: 'Friday - AI Social Life Assistant',
-  description: 'The World\'s First AI-Powered Social Life Assistant. Friday makes sure you actually talk, meet, and stay close with the people who matter.',
+  title: 'World\'s 1st Social Life AI Assistant',
+  description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter. The world\'s first AI-powered social life assistant.',
   icons: {
     icon: '/images/logo1.png',
     apple: '/images/logo1.png',
-  }
+  },
+  openGraph: {
+    title: 'World\'s 1st Social Life AI Assistant',
+    description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter.',
+    images: ['/images/social-share.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'World\'s 1st Social Life AI Assistant',
+    description: 'Friday makes sure you actually talk, meet, and stay close with the people who matter.',
+    images: ['/images/social-share.png'],
+  },
 }
 
 export default function RootLayout({
