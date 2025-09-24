@@ -169,7 +169,7 @@ export default function SignupSection() {
 
   // API call helper
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const response = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
       headers: {
@@ -199,7 +199,7 @@ export default function SignupSection() {
     
     setIsSearching(true)
     try {
-      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
       const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -798,7 +798,7 @@ export default function SignupSection() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
                       >
-                        Welcome, {user?.name}!
+                        You&apos;re on the Waitlist, {user?.name}!
                       </motion.h3>
 
                       {/* Email Notification */}
@@ -820,14 +820,14 @@ export default function SignupSection() {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.6 }}
                       >
-                        We&apos;ll notify you when your access is ready
+                        Friday gets better with your circle - start building below!
                       </motion.p>
                     </div>
 
                     {/* Add Friends Section */}
                     <div>
-                      <h4 className="text-base font-medium text-white mb-2">Build Your Circle</h4>
-                      <p className="text-xs text-gray-400 mb-3">Connect with people you actually want to hang out with, chill, or spend time with</p>
+                      <h4 className="text-base font-medium text-white mb-2">Build Your <span className="text-[#FF6B35]">Circle</span></h4>
+                      <p className="text-xs text-gray-400 mb-3">Friday works best when your <span className="text-[#FF6B35] font-medium">friends are part of it too</span>. Add the people you actually want to hang out with - this makes the magic happen.</p>
                       <form onSubmit={handleAddFriend} className="space-y-3">
                         <div className="grid grid-cols-2 gap-2">
                           <input
@@ -867,7 +867,7 @@ export default function SignupSection() {
                           disabled={isAddingFriend || !friendData.email || !friendData.name}
                           className="w-full py-2 bg-[#FF6B35] hover:bg-[#FF6B35]/80 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-full transition-all duration-300 text-xs"
                         >
-                          {isAddingFriend ? 'Adding...' : 'Invite People'}
+                          {isAddingFriend ? 'Adding...' : 'Add Friends to Your Circle'}
                         </button>
                       </form>
                     </div>
@@ -889,7 +889,7 @@ export default function SignupSection() {
 
                     {/* Invitation Link */}
                     <div>
-                      <h4 className="text-base font-medium text-white mb-2">Share Invitation</h4>
+                      <h4 className="text-base font-medium text-white mb-2">Share Your <span className="text-[#FF6B35]">Friday Link</span></h4>
                       <div className="flex items-center space-x-2">
                         <input
                           type="text"
@@ -905,7 +905,7 @@ export default function SignupSection() {
                         </button>
                       </div>
                       <p className="text-xs text-gray-400 mt-1.5">
-                        Share this link to build your circle
+                        <span className="text-[#FF6B35] font-medium">Text, email, or message</span> this link to friends so they can join your Friday circle. The more friends who join, the better Friday works for planning hangouts!
                       </p>
                     </div>
                   </div>

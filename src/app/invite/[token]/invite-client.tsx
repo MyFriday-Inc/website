@@ -107,7 +107,7 @@ export default function InvitePageClient({ token }: { token: string }) {
 
   // API call helper
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const response = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
       headers: {
@@ -180,7 +180,7 @@ export default function InvitePageClient({ token }: { token: string }) {
     
     setIsSearching(true)
     try {
-      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
       const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -721,7 +721,7 @@ export default function InvitePageClient({ token }: { token: string }) {
                       </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-white mb-2">
-                      {isNewUser ? `Welcome to Friday, ${user?.name}!` : `Great, ${user?.name}!`}
+                      {isNewUser ? `You&apos;re on the Waitlist, ${user?.name}!` : `Welcome Back, ${user?.name}!`}
                     </h3>
                     
                     {/* Email Notification - Only for new users */}
@@ -737,14 +737,17 @@ export default function InvitePageClient({ token }: { token: string }) {
                     
                     {/* Use API message */}
                     <p className="text-gray-400">
-                      {apiMessage || `You're now connected with ${invitation?.inviter_name}`}
+                      {isNewUser 
+                        ? "Friday gets better with your circle - start building below!" 
+                        : (apiMessage || `You're now connected with ${invitation?.inviter_name}`)
+                      }
                     </p>
                   </div>
 
                   {/* Add Friends Section */}
                   <div>
-                    <h4 className="text-lg font-semibold text-white mb-2">Build Your Circle</h4>
-                    <p className="text-sm text-gray-400 mb-4">Connect with people you actually want to hang out with, chill, or spend time with</p>
+                    <h4 className="text-lg font-semibold text-white mb-2">Build Your <span className="text-[#FF6B35]">Circle</span></h4>
+                    <p className="text-sm text-gray-400 mb-4">Friday works best when your <span className="text-[#FF6B35] font-medium">friends are part of it too</span>. Add the people you actually want to hang out with - this makes the magic happen.</p>
                     <form onSubmit={handleAddFriend} className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <input
@@ -784,7 +787,7 @@ export default function InvitePageClient({ token }: { token: string }) {
                         disabled={isAddingFriend || !friendData.email || !friendData.name}
                         className="w-full py-2 bg-[#FF6B35] hover:bg-[#FF6B35]/80 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-300 text-sm"
                       >
-                        {isAddingFriend ? 'Adding...' : 'Invite People'}
+                        {isAddingFriend ? 'Adding...' : 'Add Friends to Your Circle'}
                       </button>
                     </form>
                   </div>
@@ -806,7 +809,7 @@ export default function InvitePageClient({ token }: { token: string }) {
 
                   {/* Invitation Link */}
                   <div>
-                    <h4 className="text-lg font-semibold text-white mb-3">Your Invitation Link</h4>
+                    <h4 className="text-lg font-semibold text-white mb-3">Share Your <span className="text-[#FF6B35]">Friday Link</span></h4>
                     <div className="flex items-center space-x-2">
                       <input
                         type="text"
@@ -822,7 +825,7 @@ export default function InvitePageClient({ token }: { token: string }) {
                       </button>
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
-                      Share this link to build your circle
+                      <span className="text-[#FF6B35] font-medium">Text, email, or message</span> this link to friends so they can join your Friday circle. The more friends who join, the better Friday works for planning hangouts!
                     </p>
                   </div>
                 </div>

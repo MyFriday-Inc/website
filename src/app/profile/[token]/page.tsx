@@ -109,7 +109,7 @@ export default function ProfilePage() {
 
   // API call helper
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const response = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
       headers: {
@@ -227,7 +227,7 @@ export default function ProfilePage() {
     
     setIsSearching(true)
     try {
-      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
       const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -432,7 +432,7 @@ export default function ProfilePage() {
     
     setIsFriendCitySearching(true)
     try {
-      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
       const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
         headers: {
           'Content-Type': 'application/json',

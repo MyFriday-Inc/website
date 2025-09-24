@@ -7,7 +7,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   
   try {
     // Fetch invitation details for metadata
-    const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const response = await fetch(`${baseUrl}/invitation/${token}`, {
       headers: {
         'Content-Type': 'application/json',
