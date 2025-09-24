@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -24,6 +24,30 @@ interface User {
   location_timezone: string
   profile_updated_at: string
 }
+
+interface CircleConnection {
+  id: string
+  name: string
+  relationship_type: string
+  relationship_id: string
+}
+
+interface InvitationStats {
+  link: string
+  usage_count: number
+}
+
+const RELATIONSHIP_OPTIONS = [
+  'Spouse',
+  'Dating',
+  'Family',
+  'Close Friends',
+  'Friends',
+  'Colleague',
+  'Roommate',
+  'Acquaintance',
+  'Just Met'
+]
 
 export default function ProfilePage() {
   const params = useParams()
@@ -53,6 +77,13 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  
+  // Circle and invitation states
+  const [circle, setCircle] = useState<CircleConnection[]>([])
+  const [invitationStats, setInvitationStats] = useState<InvitationStats | null>(null)
+  const [isLoadingCircle, setIsLoadingCircle] = useState(false)
+  const [isLoadingInvitation, setIsLoadingInvitation] = useState(false)
+  const [isUpdatingRelationship, setIsUpdatingRelationship] = useState<string | null>(null)
 
   // Debounce and request cancellation refs
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
@@ -72,6 +103,40 @@ export default function ProfilePage() {
     })
     return response.json()
   }
+
+  // Load circle data
+  const loadCircleData = useCallback(async () => {
+    setIsLoadingCircle(true)
+    try {
+      const result = await apiCall(`/user-profile/${token}/circle`)
+      if (result.success) {
+        setCircle(result.circle)
+      } else {
+        console.error('Failed to load circle:', result.message)
+      }
+    } catch {
+      console.error('Error loading circle')
+    } finally {
+      setIsLoadingCircle(false)
+    }
+  }, [token])
+
+  // Load invitation stats
+  const loadInvitationStats = useCallback(async () => {
+    setIsLoadingInvitation(true)
+    try {
+      const result = await apiCall(`/user-profile/${token}/invitation`)
+      if (result.success) {
+        setInvitationStats(result.invitation)
+      } else {
+        console.error('Failed to load invitation stats:', result.message)
+      }
+    } catch {
+      console.error('Error loading invitation stats')
+    } finally {
+      setIsLoadingInvitation(false)
+    }
+  }, [token])
 
   // Load profile data on mount
   useEffect(() => {
@@ -105,6 +170,14 @@ export default function ProfilePage() {
       loadProfile()
     }
   }, [token])
+
+  // Load circle and invitation data when user is valid and loaded
+  useEffect(() => {
+    if (isValidToken && user) {
+      loadCircleData()
+      loadInvitationStats()
+    }
+  }, [isValidToken, user, loadCircleData, loadInvitationStats])
 
   // Cleanup timers and abort controllers on unmount
   useEffect(() => {
@@ -283,6 +356,72 @@ export default function ProfilePage() {
     }
   }
 
+  // Update relationship type
+  const updateRelationshipType = async (relationshipId: string, newType: string) => {
+    setIsUpdatingRelationship(relationshipId)
+    try {
+      const result = await apiCall(`/user-profile/${token}/relationship/${relationshipId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ relationship_type: newType })
+      })
+      
+      if (result.success) {
+        // Update local circle data
+        setCircle(prev => prev.map(conn => 
+          conn.relationship_id === relationshipId 
+            ? { ...conn, relationship_type: newType }
+            : conn
+        ))
+        setSuccess('Relationship updated successfully!')
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        setError(result.message || 'Failed to update relationship')
+        setTimeout(() => setError(''), 3000)
+      }
+    } catch {
+      setError('Network error. Please try again.')
+      setTimeout(() => setError(''), 3000)
+    } finally {
+      setIsUpdatingRelationship(null)
+    }
+  }
+
+  // Copy invitation link
+  const copyInvitationLink = async () => {
+    if (invitationStats?.link) {
+      try {
+        await navigator.clipboard.writeText(invitationStats.link)
+        setSuccess('Invitation link copied!')
+        setTimeout(() => setSuccess(''), 2000)
+      } catch {
+        setError('Failed to copy link')
+        setTimeout(() => setError(''), 2000)
+      }
+    }
+  }
+
+  // Get relationship ring position (0 = center, 4 = outermost)
+  const getRelationshipRing = (relationshipType: string): number => {
+    switch (relationshipType) {
+      case 'Spouse':
+      case 'Dating':
+        return 0 // Center
+      case 'Family':
+      case 'Close Friends':
+        return 1 // Inner ring
+      case 'Friends':
+        return 2 // Middle ring
+      case 'Colleague':
+      case 'Roommate':
+        return 3 // Outer ring
+      case 'Acquaintance':
+      case 'Just Met':
+        return 4 // Outermost ring
+      default:
+        return 2 // Default to middle
+    }
+  }
+
   // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -355,7 +494,7 @@ export default function ProfilePage() {
         />
         
         <div className="relative z-10 container py-16 sm:py-20 lg:py-28 mt-20">
-          <div className="max-w-md mx-auto">
+          <div className="max-w-6xl mx-auto">
             
             {/* Profile Header */}
             <motion.div
@@ -384,14 +523,13 @@ export default function ProfilePage() {
               </motion.div>
             )}
 
-            {/* Profile Container */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
-              
+            {/* Profile Basic Info Container */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8 mb-8 max-w-2xl mx-auto">
               {!isEditing ? (
                 /* Profile View Mode */
                 <div className="space-y-6">
                   {/* Profile Info */}
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1">
                         Name
@@ -418,7 +556,7 @@ export default function ProfilePage() {
                         {user?.location_city}, {user?.location_state}
                       </div>
                       <div className="text-sm text-gray-400">
-                        Timezone: {user?.location_timezone}
+                        {user?.location_timezone}
                       </div>
                     </div>
 
@@ -568,6 +706,226 @@ export default function ProfilePage() {
                   </div>
                 </form>
               )}
+            </div>
+
+            {/* Concentric Circles Visualization */}
+            <div className="mb-8">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="relative w-96 h-96 mx-auto"
+              >
+                {/* SVG Container for Circles */}
+                <svg className="w-full h-full" viewBox="0 0 400 400">
+                  {/* Concentric circles as guides */}
+                  <circle cx="200" cy="200" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+                  <circle cx="200" cy="200" r="80" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+                  <circle cx="200" cy="200" r="120" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+                  <circle cx="200" cy="200" r="160" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+                  <circle cx="200" cy="200" r="190" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+                  
+                  {/* User at center */}
+                  <circle cx="200" cy="200" r="20" fill="url(#userGradient)" />
+                  <text x="200" y="208" textAnchor="middle" className="fill-black font-bold text-lg">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </text>
+                  
+                  {/* Connections positioned on rings */}
+                  {circle.map((connection) => {
+                    const ring = getRelationshipRing(connection.relationship_type)
+                    const ringRadius = 40 + (ring * 40) // 40, 80, 120, 160, 200
+                    const totalInRing = circle.filter(c => getRelationshipRing(c.relationship_type) === ring).length
+                    const indexInRing = circle.filter(c => getRelationshipRing(c.relationship_type) === ring).indexOf(connection)
+                    const angle = (indexInRing / totalInRing) * 2 * Math.PI
+                    const x = 200 + ringRadius * Math.cos(angle)
+                    const y = 200 + ringRadius * Math.sin(angle)
+                    
+                    return (
+                      <g key={connection.id}>
+                        <circle cx={x} cy={y} r="12" fill="rgba(17, 208, 190, 0.2)" stroke="#11d0be" strokeWidth="2" />
+                        <text x={x} y={y + 4} textAnchor="middle" className="fill-white font-medium text-xs">
+                          {connection.name.charAt(0)}
+                        </text>
+                        
+                        {/* Curved text path for name */}
+                        <defs>
+                          <path id={`textPath-${connection.id}`} d={`M ${x-30} ${y} A 30 30 0 0 1 ${x+30} ${y}`} />
+                        </defs>
+                        <text className="fill-white text-xs">
+                          <textPath href={`#textPath-${connection.id}`} startOffset="50%" textAnchor="middle">
+                            {connection.name}
+                          </textPath>
+                        </text>
+                      </g>
+                    )
+                  })}
+                  
+                  {/* Gradient definitions */}
+                  <defs>
+                    <linearGradient id="userGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#11d0be" />
+                      <stop offset="100%" stopColor="#0fb8a8" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                
+                {/* Loading overlay */}
+                {isLoadingCircle && (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                
+                {/* Empty state */}
+                {!isLoadingCircle && circle.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-gray-400 mb-2">No connections yet</p>
+                      <p className="text-sm text-gray-500">Share your invitation to start building your circle</p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Bottom Two-Panel Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Left Panel: Invitation Stats */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6"
+              >
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <svg className="w-6 h-6 mr-2 text-[#11d0be]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                  </svg>
+                  Your Invitation
+                </h3>
+                
+                {isLoadingInvitation ? (
+                  <div className="text-center py-8">
+                    <div className="w-6 h-6 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading invitation stats...</p>
+                  </div>
+                ) : invitationStats ? (
+                  <div className="space-y-4">
+                    {/* Invitation Link */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Your Invitation Link
+                      </label>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          value={invitationStats.link}
+                          readOnly
+                          className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-l-lg text-white text-sm"
+                        />
+                        <button
+                          onClick={copyInvitationLink}
+                          className="px-4 py-3 bg-[#11d0be] hover:bg-[#0fb8a8] text-black font-medium rounded-r-lg transition-colors"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Usage Stats */}
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-[#11d0be] mb-2">
+                          {invitationStats.usage_count}
+                        </div>
+                        <div className="text-gray-300">
+                          People joined using your link
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Share Options */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Quick Share
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">
+                          SMS
+                        </button>
+                        <button className="py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors">
+                          WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400 mb-2">No invitation link found</p>
+                    <p className="text-sm text-gray-500">Your invitation may have expired</p>
+                  </div>
+                )}
+              </motion.div>
+              
+              {/* Right Panel: Relationship Management */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6"
+              >
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <svg className="w-6 h-6 mr-2 text-[#11d0be]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                  Manage Relationships
+                </h3>
+                
+                {isLoadingCircle ? (
+                  <div className="text-center py-8">
+                    <div className="w-6 h-6 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading connections...</p>
+                  </div>
+                ) : circle.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {circle.map((connection) => (
+                      <div key={connection.id} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-[#11d0be] to-[#0fb8a8] rounded-full flex items-center justify-center">
+                            <span className="text-black font-medium text-sm">
+                              {connection.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">{connection.name}</div>
+                            <div className="text-xs text-gray-400">{connection.relationship_type}</div>
+                          </div>
+                        </div>
+                        
+                        <select
+                          value={connection.relationship_type}
+                          onChange={(e) => updateRelationshipType(connection.relationship_id, e.target.value)}
+                          disabled={isUpdatingRelationship === connection.relationship_id}
+                          className="px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#11d0be] disabled:opacity-50"
+                        >
+                          {RELATIONSHIP_OPTIONS.map((option) => (
+                            <option key={option} value={option} className="bg-gray-900 text-white">
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400 mb-2">No connections yet</p>
+                    <p className="text-sm text-gray-500">Share your invitation link to start building your network</p>
+                  </div>
+                )}
+              </motion.div>
             </div>
           </div>
         </div>

@@ -90,6 +90,11 @@ export default function SignupSection() {
   const [error, setError] = useState('')
   const [copySuccess, setCopySuccess] = useState(false)
   
+  // Email checking states
+  const [emailExists, setEmailExists] = useState<boolean | null>(null)
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+  const [emailCheckError, setEmailCheckError] = useState('')
+  
   // Terms and privacy policy states
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showTermsModal, setShowTermsModal] = useState(false)
@@ -97,6 +102,8 @@ export default function SignupSection() {
 
   // Debounce and request cancellation refs
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const emailDebounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const emailAbortController = useRef<AbortController | null>(null)
   const abortController = useRef<AbortController | null>(null)
 
   // Check for reduced motion preference
@@ -133,6 +140,12 @@ export default function SignupSection() {
       }
       if (abortController.current) {
         abortController.current.abort()
+      }
+      if (emailDebounceTimer.current) {
+        clearTimeout(emailDebounceTimer.current)
+      }
+      if (emailAbortController.current) {
+        emailAbortController.current.abort()
       }
     }
   }, [])
@@ -245,9 +258,69 @@ export default function SignupSection() {
     setUseManualLocation(false)
   }
 
+  // Check if email exists with abort controller
+  const checkEmailExists = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setEmailExists(null)
+      setEmailCheckError('')
+      return
+    }
+    
+    // Cancel previous request if it exists
+    if (emailAbortController.current) {
+      emailAbortController.current.abort()
+    }
+    
+    // Create new abort controller for this request
+    emailAbortController.current = new AbortController()
+    
+    setIsCheckingEmail(true)
+    setEmailCheckError('')
+    
+    try {
+      const result = await apiCall(`/check-email/${encodeURIComponent(email)}`, {
+        signal: emailAbortController.current.signal
+      })
+      
+      if (result.exists !== undefined) {
+        setEmailExists(result.exists)
+      }
+    } catch (error) {
+      // Don't show error for aborted requests
+      if (error instanceof Error && error.name !== 'AbortError') {
+        setEmailCheckError('Error checking email')
+        console.error('Email check error:', error)
+      }
+    } finally {
+      setIsCheckingEmail(false)
+    }
+  }
+
+  // Handle email input with debouncing
+  const handleEmailChange = (value: string) => {
+    setFormData(prev => ({ ...prev, email: value }))
+    setEmailExists(null) // Reset state while typing
+    
+    // Clear previous debounce timer
+    if (emailDebounceTimer.current) {
+      clearTimeout(emailDebounceTimer.current)
+    }
+    
+    // Set new debounce timer
+    emailDebounceTimer.current = setTimeout(() => {
+      checkEmailExists(value)
+    }, 600) // 600ms delay for email checking
+  }
+
   // Handle signup
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check if email already exists - block signup
+    if (emailExists === true) {
+      setError('This email is already registered on Friday. Check your email from hello@myfriday.app for your account details and invitation link.')
+      return
+    }
     
     // Validate basic fields
     if (!formData.name || !formData.email) {
@@ -491,15 +564,51 @@ export default function SignupSection() {
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Email Address
                       </label>
-                      <motion.input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent transition-all duration-200 hover:bg-white/15 text-sm"
-                        placeholder="Enter your email"
-                        required
+                      <div className="relative">
+                        <motion.input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleEmailChange(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent transition-all duration-200 hover:bg-white/15 text-sm"
+                          placeholder="Enter your email"
+                          required
                         whileFocus={{ scale: 1.01, borderColor: "rgba(17, 208, 190, 0.5)" }}
                       />
+                      {isCheckingEmail && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="w-4 h-4 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                      </div>
+                      
+                      {/* Email status feedback */}
+                      {emailExists === true && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm"
+                        >
+                          This email is already registered on Friday. Check your email from <span className="font-medium">hello@myfriday.app</span> for your account details and invitation link.
+                        </motion.div>
+                      )}
+                      {emailExists === false && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded text-green-400 text-sm"
+                        >
+                          ✓ Email available! Continue with your signup below.
+                        </motion.div>
+                      )}
+                      {emailCheckError && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm"
+                        >
+                          {emailCheckError}
+                        </motion.div>
+                      )}
                     </motion.div>
 
                     {/* City Search */}
@@ -634,12 +743,20 @@ export default function SignupSection() {
                     >
                       <motion.button
                         type="submit"
-                        disabled={isSigningUp || !formData.name || !formData.email || (!formData.city_id && (!formData.city || !formData.state))}
+                        disabled={
+                          isSigningUp || 
+                          !formData.name || 
+                          !formData.email || 
+                          (!formData.city_id && (!formData.city || !formData.state)) ||
+                          isCheckingEmail ||
+                          emailExists === true ||
+                          emailExists === null
+                        }
                         className="w-full py-2.5 bg-[#11d0be] hover:bg-[#0fb8a8] disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-semibold rounded-full transition-all duration-300 text-sm shadow-sm"
                         whileHover={{ scale: 1.03, boxShadow: "0 10px 25px rgba(17, 208, 190, 0.3)" }}
                         whileTap={{ scale: 0.97 }}
                       >
-                        {isSigningUp ? 'Processing...' : 'Join Waitlist'}
+                        {isSigningUp ? 'Processing...' : (emailExists === true ? 'Email Already Registered' : 'Join Waitlist')}
                       </motion.button>
                     </motion.div>
                   </form>

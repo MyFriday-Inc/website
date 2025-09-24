@@ -2,7 +2,7 @@
 
 ## Overview
 
-The FRIDAY API provides secure endpoints for the signup flow and friend network management. Features structured location data via cities lookup, profile management, and comprehensive security. All endpoints require API key authentication and include rate limiting for abuse prevention.
+The FRIDAY API provides secure endpoints for the signup flow and friend network management. Features structured location data via cities lookup, profile management, enhanced circle management, multi-use invitation links, and comprehensive security. All endpoints require API key authentication and include rate limiting for abuse prevention.
 
 ## Authentication
 
@@ -33,6 +33,9 @@ supabase secrets set WEBSITE_API_KEY=your-secure-api-key
 - **Invitation Validation**: 30 requests per hour per IP
 - **Cities Search**: 20 requests per hour per IP
 - **Profile Update**: 10 requests per hour per token
+- **Circle Data**: 20 requests per hour per token
+- **Relationship Update**: 10 requests per hour per token
+- **Invitation Stats**: 20 requests per hour per token
 
 ## API Endpoints
 
@@ -240,7 +243,7 @@ Validates token and returns invitation context for signup page.
 {
   "success": true,
   "valid": false,
-  "message": "Invitation not found, expired, or already used"
+  "message": "Invitation not found or expired"
 }
 ```
 
@@ -248,7 +251,14 @@ Validates token and returns invitation context for signup page.
 
 ### 6. POST /redeem-invitation
 
-Complete signup through invitation (creates user + relationship).
+Redeem invitation link to connect with inviter. Works for both new and existing users, supporting multi-use invitation links. Same invitation can be used by multiple people until 30-day expiration.
+
+**Key Features:**
+- **Multi-use Links**: Same invitation works for unlimited users
+- **Smart User Handling**: Creates new users or connects existing ones
+- **Graceful Relationship Management**: Handles duplicate relationships safely
+- **Universal Invitation Sharing**: All users get invitation URLs to share with others
+- **Contextual Messaging**: Different success messages based on scenario
 
 **Request (Option 1 - Using city dropdown):**
 ```json
@@ -273,9 +283,9 @@ Complete signup through invitation (creates user + relationship).
 }
 ```
 
-**Note:** Location is optional. If provided, use either `city_id` OR `city + state`, not both.
+**Note:** Location is optional for existing users. For new users, if provided, use either `city_id` OR `city + state`, not both.
 
-**Response:**
+**Response for New User:**
 ```json
 {
   "success": true,
@@ -300,6 +310,67 @@ Complete signup through invitation (creates user + relationship).
   "message": "Welcome! You're connected with John Doe. Share your link to add more friends!"
 }
 ```
+
+**Response for Existing User (New Relationship):**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "uuid",
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "location_city": "Boston",
+    "location_state": "MA",
+    "location_timezone": "America/New_York"
+  },
+  "relationship": {
+    "connected_with": "John Doe",
+    "relationship_type": "friend"
+  },
+  "invitation": {
+    "token": "existing-user-token",
+    "invitation_url": "https://yourwebsite.com/invite/existing-user-token",
+    "expires_at": "2024-01-20T15:30:00Z"
+  },
+  "message": "Great! You're now connected with John Doe!"
+}
+```
+
+**Response for Existing User (Existing Relationship):**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "uuid",
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "location_city": "Boston",
+    "location_state": "MA",
+    "location_timezone": "America/New_York"
+  },
+  "relationship": {
+    "connected_with": "John Doe",
+    "relationship_type": "friend"
+  },
+  "invitation": {
+    "token": "existing-user-token",
+    "invitation_url": "https://yourwebsite.com/invite/existing-user-token",
+    "expires_at": "2024-01-20T15:30:00Z"
+  },
+  "message": "You're already connected with John Doe!"
+}
+```
+
+**Error Codes:**
+- `INVALID_TOKEN`: Token invalid, expired, or not found
+- `CANNOT_CONNECT_TO_SELF`: Trying to use own invitation
+- `MISSING_FIELDS`: Required fields not provided
+- `INVALID_EMAIL`: Invalid email format
+- `CONFLICTING_LOCATION_INPUT`: Both city_id and city+state provided (new users only)
+- `STATE_REQUIRED_WITH_CITY`: City provided without state (new users only)
+- `CITY_REQUIRED_WITH_STATE`: State provided without city (new users only)
+- `RATE_LIMITED`: Too many requests
+- `UNAUTHORIZED`: Invalid API key
 
 ---
 
@@ -386,6 +457,118 @@ Update user profile via email token. Only name and location updates are allowed.
 
 ---
 
+### 10. GET /user-profile/{token}/circle
+
+Get user's circle of connections with names and relationship types.
+
+**Authentication**: Token + API key required
+
+**Response:**
+```json
+{
+  "success": true,
+  "circle": [
+    {
+      "id": "user-uuid-1",
+      "name": "John Smith",
+      "relationship_type": "friend",
+      "relationship_id": "rel-uuid-1"
+    },
+    {
+      "id": "user-uuid-2", 
+      "name": "Sarah Johnson",
+      "relationship_type": "family",
+      "relationship_id": "rel-uuid-2"
+    },
+    {
+      "id": "user-uuid-3",
+      "name": "Mike Chen", 
+      "relationship_type": "colleague",
+      "relationship_id": "rel-uuid-3"
+    }
+  ],
+  "message": "Circle data retrieved successfully"
+}
+```
+
+**Error Codes:**
+- `INVALID_OR_EXPIRED_TOKEN`: Token invalid or expired
+- `FAILED_TO_GET_CIRCLE`: Database error retrieving circle data
+- `UNAUTHORIZED`: Invalid API key
+
+---
+
+### 11. PUT /user-profile/{token}/relationship/{relationship_id}
+
+Update the relationship type for a specific connection in user's circle.
+
+**Authentication**: Token + API key required
+
+**Request:**
+```json
+{
+  "relationship_type": "family"
+}
+```
+
+**Valid relationship types:**
+- `friend`
+- `family` 
+- `colleague`
+- `acquaintance`
+- `partner`
+
+**Response:**
+```json
+{
+  "success": true,
+  "relationship": {
+    "id": "rel-uuid-1",
+    "user_a_id": "user-uuid-1",
+    "user_b_id": "user-uuid-2", 
+    "relationship_type": "family",
+    "updated_at": "2024-01-15T12:00:00Z"
+  },
+  "message": "Relationship type updated successfully"
+}
+```
+
+**Error Codes:**
+- `INVALID_OR_EXPIRED_TOKEN`: Token invalid or expired
+- `MISSING_RELATIONSHIP_TYPE`: relationship_type not provided
+- `INVALID_RELATIONSHIP_TYPE`: Invalid relationship type
+- `FAILED_TO_UPDATE_RELATIONSHIP`: Database error updating relationship
+- `RATE_LIMITED`: Too many requests
+- `UNAUTHORIZED`: Invalid API key
+
+---
+
+### 12. GET /user-profile/{token}/invitation
+
+Get user's invitation link and usage statistics.
+
+**Authentication**: Token + API key required
+
+**Response:**
+```json
+{
+  "success": true,
+  "invitation": {
+    "link": "https://yourwebsite.com/invitation/secure-random-token",
+    "usage_count": 5
+  },
+  "message": "Invitation data retrieved successfully"
+}
+```
+
+**Error Codes:**
+- `INVALID_OR_EXPIRED_TOKEN`: Token invalid or expired
+- `NO_ACTIVE_INVITATION`: User has no active invitation link
+- `FAILED_TO_GET_INVITATION_STATS`: Database error retrieving invitation data
+- `UNAUTHORIZED`: Invalid API key
+
+---
+
 ## Error Handling
 
 All endpoints return standardized error responses:
@@ -408,12 +591,18 @@ All endpoints return standardized error responses:
 - `CONFLICTING_LOCATION_INPUT`: Both city_id and city+state provided
 - `STATE_REQUIRED_WITH_CITY`: City provided without state
 - `CITY_REQUIRED_WITH_STATE`: State provided without city
-- `USER_EXISTS`: Email already registered
-- `INVALID_TOKEN`: Token invalid, expired, or used
+- `USER_EXISTS`: Email already registered (signup only)
+- `INVALID_TOKEN`: Token invalid, expired, or not found
 - `MISSING_SEARCH_TERM`: Search parameter missing
 - `SEARCH_TOO_SHORT`: Search term less than 2 characters
 - `NO_UPDATES_PROVIDED`: No fields provided for update
 - `NAME_TOO_LONG`: Name exceeds maximum length
+- `FAILED_TO_GET_CIRCLE`: Database error retrieving circle data
+- `MISSING_RELATIONSHIP_TYPE`: relationship_type not provided
+- `INVALID_RELATIONSHIP_TYPE`: Invalid relationship type
+- `FAILED_TO_UPDATE_RELATIONSHIP`: Database error updating relationship
+- `NO_ACTIVE_INVITATION`: User has no active invitation link
+- `FAILED_TO_GET_INVITATION_STATS`: Database error retrieving invitation data
 - `INTERNAL_ERROR`: Server error
 
 ### Rate Limit Headers
@@ -453,17 +642,19 @@ When rate limited, responses include:
 ## Database Schema
 
 ### New Tables Added
-- `invitations_fe`: Manages invitation tokens with 5-day expiration
+- `invitations_fe`: Manages invitation tokens with 30-day expiration
 - `cities_lookup`: ~300 major US cities with timezone data
-- Updated `relationships_fe`: Added `relationship_type` field
+- Updated `relationships_fe`: Added `relationship_type`, `source`, and `invited_by` fields for relationship tracking
 - Updated `users_fe`: Added structured location fields and profile update tokens
 
 ### Key Features
 - **Structured Location Data**: `location_city`, `location_state`, `location_timezone`
 - **Cities Lookup**: Accurate timezone mapping for all major US cities
 - **Profile Update Tokens**: Secure 90-day tokens for email-based updates
-- **Invitation System**: 5-day expiration with automatic token generation
+- **Invitation System**: 30-day expiration with multi-use invitation links
 - **Relationship Types**: Flexible relationship categorization
+- **Circle Management**: View and manage user's connections with relationship type updates
+- **Invitation Analytics**: Track invitation link usage and statistics
 
 ---
 
@@ -487,6 +678,7 @@ When rate limited, responses include:
    - User Management: `POST /signup`, `POST /add-friend`
    - Invitations: `POST /generate-invitation`, `GET /invitation/{token}`, `POST /redeem-invitation`
    - Profile: `GET /profile/{token}`, `PUT /profile/{token}`
+   - Enhanced Profile: `GET /user-profile/{token}/circle`, `PUT /user-profile/{token}/relationship/{id}`, `GET /user-profile/{token}/invitation`
    - Utilities: `GET /check-email/{email}`
 
 ---
@@ -595,8 +787,54 @@ const updateResponseManual = await fetch(`https://your-project.supabase.co/funct
     state: 'TX'
   })
 });
+
+// 5. Enhanced Profile Features - Get user's circle
+const circleResponse = await fetch(`https://your-project.supabase.co/functions/v1/user-profile/${token}/circle`, {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.FRIDAY_API_KEY
+  }
+});
+
+const circleResult = await circleResponse.json();
+
+if (circleResult.success) {
+  // Display user's connections
+  circleResult.circle.forEach(connection => {
+    console.log(`${connection.name} - ${connection.relationship_type}`);
+  });
+}
+
+// 6. Update relationship type
+const updateRelationshipResponse = await fetch(`https://your-project.supabase.co/functions/v1/user-profile/${token}/relationship/${relationshipId}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.FRIDAY_API_KEY
+  },
+  body: JSON.stringify({
+    relationship_type: 'family'
+  })
+});
+
+// 7. Get invitation stats
+const invitationStatsResponse = await fetch(`https://your-project.supabase.co/functions/v1/user-profile/${token}/invitation`, {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.FRIDAY_API_KEY
+  }
+});
+
+const invitationStats = await invitationStatsResponse.json();
+
+if (invitationStats.success) {
+  console.log('Your invitation link:', invitationStats.invitation.link);
+  console.log('People who joined using your link:', invitationStats.invitation.usage_count);
+}
 ```
 
 ---
 
-This API provides a complete foundation for the FRIDAY platform with structured location data, comprehensive user management, secure profile updates, and robust social networking features. All endpoints include proper security, rate limiting, and error handling for production use.
+This API provides a complete foundation for the FRIDAY platform with structured location data, comprehensive user management, secure profile updates, enhanced circle management, and robust social networking features. All endpoints include proper security, rate limiting, and error handling for production use.

@@ -77,6 +77,13 @@ export default function InvitePageClient({ token }: { token: string }) {
   const [currentStep, setCurrentStep] = useState<'signup' | 'success'>('signup')
   const [user, setUser] = useState<User | null>(null)
   const [invitationUrl, setInvitationUrl] = useState('')
+  const [isNewUser, setIsNewUser] = useState(false)
+  const [apiMessage, setApiMessage] = useState('')
+  
+  // Email checking states
+  const [emailExists, setEmailExists] = useState<boolean | null>(null)
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+  const [emailCheckError, setEmailCheckError] = useState('')
   
   // Friend adding states
   const [friendData, setFriendData] = useState({
@@ -95,6 +102,8 @@ export default function InvitePageClient({ token }: { token: string }) {
   // Debounce and request cancellation refs
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
   const abortController = useRef<AbortController | null>(null)
+  const emailDebounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const emailAbortController = useRef<AbortController | null>(null)
 
   // API call helper
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
@@ -143,6 +152,12 @@ export default function InvitePageClient({ token }: { token: string }) {
       }
       if (abortController.current) {
         abortController.current.abort()
+      }
+      if (emailDebounceTimer.current) {
+        clearTimeout(emailDebounceTimer.current)
+      }
+      if (emailAbortController.current) {
+        emailAbortController.current.abort()
       }
     }
   }, [])
@@ -224,20 +239,88 @@ export default function InvitePageClient({ token }: { token: string }) {
     setUseManualLocation(false)
   }
 
+  // Check if email exists with abort controller
+  const checkEmailExists = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setEmailExists(null)
+      setEmailCheckError('')
+      return
+    }
+    
+    // Cancel previous request if it exists
+    if (emailAbortController.current) {
+      emailAbortController.current.abort()
+    }
+    
+    // Create new abort controller for this request
+    emailAbortController.current = new AbortController()
+    
+    setIsCheckingEmail(true)
+    setEmailCheckError('')
+    
+    try {
+      const result = await apiCall(`/check-email/${encodeURIComponent(email)}`, {
+        signal: emailAbortController.current.signal
+      })
+      
+      if (result.exists !== undefined) {
+        setEmailExists(result.exists)
+      }
+    } catch (error) {
+      // Don't show error for aborted requests
+      if (error instanceof Error && error.name !== 'AbortError') {
+        setEmailCheckError('Error checking email')
+        console.error('Email check error:', error)
+      }
+    } finally {
+      setIsCheckingEmail(false)
+    }
+  }
+
+  // Handle email input with debouncing
+  const handleEmailChange = (value: string) => {
+    setFormData(prev => ({ ...prev, email: value }))
+    setEmailExists(null) // Reset state while typing
+    
+    // Clear previous debounce timer
+    if (emailDebounceTimer.current) {
+      clearTimeout(emailDebounceTimer.current)
+    }
+    
+    // Set new debounce timer
+    emailDebounceTimer.current = setTimeout(() => {
+      checkEmailExists(value)
+    }, 600) // 600ms delay for email checking
+  }
+
   // Handle invitation redemption
   const handleRedeemInvitation = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Validate basic fields
-    if (!formData.name || !formData.email) {
-      setError('Please fill in all fields')
+    if (!formData.email) {
+      setError('Please enter your email')
       return
     }
     
-    // Validate location - either city_id or city+state required
-    const hasValidLocation = formData.city_id || (formData.city && formData.state)
-    if (!hasValidLocation) {
-      setError('Please select your city and state')
+    // For new users, validate name and location
+    if (emailExists === false) {
+      if (!formData.name) {
+        setError('Please enter your name')
+        return
+      }
+      
+      // Validate location - either city_id or city+state required for new users
+      const hasValidLocation = formData.city_id || (formData.city && formData.state)
+      if (!hasValidLocation) {
+        setError('Please select your city and state')
+        return
+      }
+    }
+    
+    // For existing users, only name is required (backend will use existing location)
+    if (emailExists === true && !formData.name) {
+      setError('Please enter your name')
       return
     }
 
@@ -265,6 +348,8 @@ export default function InvitePageClient({ token }: { token: string }) {
       if (result.success) {
         setUser(result.user)
         setInvitationUrl(result.invitation.invitation_url)
+        setIsNewUser(!!result.profile_update_url) // Detect new user by profile_update_url presence
+        setApiMessage(result.message || '') // Store API message
         setCurrentStep('success')
       } else {
         setError(result.message || 'Signup failed')
@@ -437,74 +522,103 @@ export default function InvitePageClient({ token }: { token: string }) {
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Email Address
                     </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-
-                  {/* City Search */}
-                  <div className="relative">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Your City
-                    </label>
-                    <input
-                      type="text"
-                      value={citySearch}
-                      onChange={(e) => handleCitySearch(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
-                      placeholder="Search for your city"
-                      required
-                    />
-                    
-                    {/* Cities Dropdown */}
-                    {showCities && cities.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {cities.map((city) => (
-                          <button
-                            key={city.id}
-                            type="button"
-                            onClick={() => selectCity(city)}
-                            className="w-full text-left px-4 py-3 text-white hover:bg-white/10 transition-colors"
-                          >
-                            {city.display}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {isSearching && (
-                      <div className="absolute right-3 top-11 text-gray-400">
-                        Searching...
-                      </div>
-                    )}
-                    
-                  </div>
-
-                  {/* State Selection - Show when manual location or city is selected */}
-                  {(useManualLocation || formData.state) && (
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        State
-                      </label>
-                      <select
-                        value={formData.state}
-                        onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
-                        required={useManualLocation}
-                      >
-                        <option value="" className="bg-gray-900 text-white">Select your state</option>
-                        {US_STATES.map((state) => (
-                          <option key={state.code} value={state.code} className="bg-gray-900 text-white">
-                            {state.name}
-                          </option>
-                        ))}
-                      </select>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
+                        placeholder="Enter your email"
+                        required
+                      />
+                      {isCheckingEmail && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="w-4 h-4 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Email status feedback */}
+                    {emailExists === true && (
+                      <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400 text-sm">
+                        ✓ Welcome back! Just choose your relationship type below.
+                      </div>
+                    )}
+                    {emailExists === false && (
+                      <div className="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded text-green-400 text-sm">
+                        ✓ New user - please complete all fields below.
+                      </div>
+                    )}
+                    {emailCheckError && (
+                      <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+                        {emailCheckError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Location Fields - Only show for new users */}
+                  {emailExists === false && (
+                    <>
+                      {/* City Search */}
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Your City
+                        </label>
+                        <input
+                          type="text"
+                          value={citySearch}
+                          onChange={(e) => handleCitySearch(e.target.value)}
+                          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
+                          placeholder="Search for your city"
+                          required
+                        />
+                        
+                        {/* Cities Dropdown */}
+                        {showCities && cities.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {cities.map((city) => (
+                              <button
+                                key={city.id}
+                                type="button"
+                                onClick={() => selectCity(city)}
+                                className="w-full text-left px-4 py-3 text-white hover:bg-white/10 transition-colors"
+                              >
+                                {city.display}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {isSearching && (
+                          <div className="absolute right-3 top-11 text-gray-400">
+                            Searching...
+                          </div>
+                        )}
+                        
+                      </div>
+
+                      {/* State Selection - Show when manual location or city is selected */}
+                      {(useManualLocation || formData.state) && (
+                        <div className="relative">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            State
+                          </label>
+                          <select
+                            value={formData.state}
+                            onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#11d0be] focus:border-transparent"
+                            required={useManualLocation}
+                          >
+                            <option value="" className="bg-gray-900 text-white">Select your state</option>
+                            {US_STATES.map((state) => (
+                              <option key={state.code} value={state.code} className="bg-gray-900 text-white">
+                                {state.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Relationship Type */}
@@ -536,10 +650,20 @@ export default function InvitePageClient({ token }: { token: string }) {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={isSigningUp || !formData.name || !formData.email || (!formData.city_id && (!formData.city || !formData.state))}
+                    disabled={
+                      isSigningUp || 
+                      !formData.email || 
+                      isCheckingEmail || 
+                      emailExists === null ||
+                      (emailExists === false && (!formData.name || (!formData.city_id && (!formData.city || !formData.state)))) ||
+                      (emailExists === true && !formData.name)
+                    }
                     className="w-full py-3 bg-[#11d0be] hover:bg-[#0fb8a8] disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-bold rounded-lg transition-all duration-300"
                   >
-                    {isSigningUp ? 'Joining Friday...' : 'Join Friday'}
+                    {isSigningUp 
+                      ? (emailExists === true ? 'Connecting...' : 'Joining Friday...')
+                      : (emailExists === true ? `Connect with ${invitation?.inviter_name}` : 'Join Friday')
+                    }
                   </button>
                 </form>
               ) : (
@@ -551,18 +675,25 @@ export default function InvitePageClient({ token }: { token: string }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Welcome to Friday, {user?.name}!</h3>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      {isNewUser ? `Welcome to Friday, ${user?.name}!` : `Great, ${user?.name}!`}
+                    </h3>
                     
-                    {/* Email Notification */}
-                    <div className="bg-[#11d0be]/10 border border-[#11d0be]/20 rounded-lg p-4 mb-4">
-                      <p className="text-sm text-gray-300 text-center">
-                        📧 <span className="font-medium text-white">Check your email!</span> You&apos;ll receive a welcome message from{' '}
-                        <span className="text-[#11d0be] font-semibold">hello@myfriday.app</span> with important links.{' '}
-                        <span className="font-medium text-white">Star this email</span> so you don&apos;t lose it - and check your spam folder if you don&apos;t see it!
-                      </p>
-                    </div>
+                    {/* Email Notification - Only for new users */}
+                    {isNewUser && (
+                      <div className="bg-[#11d0be]/10 border border-[#11d0be]/20 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-gray-300 text-center">
+                          📧 <span className="font-medium text-white">Check your email!</span> You&apos;ll receive a welcome message from{' '}
+                          <span className="text-[#11d0be] font-semibold">hello@myfriday.app</span> with important links.{' '}
+                          <span className="font-medium text-white">Star this email</span> so you don&apos;t lose it - and check your spam folder if you don&apos;t see it!
+                        </p>
+                      </div>
+                    )}
                     
-                    <p className="text-gray-400">You&apos;re now connected with {invitation?.inviter_name}</p>
+                    {/* Use API message */}
+                    <p className="text-gray-400">
+                      {apiMessage || `You're now connected with ${invitation?.inviter_name}`}
+                    </p>
                   </div>
 
                   {/* Add Friends Section */}
