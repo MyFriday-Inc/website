@@ -826,7 +826,8 @@ export default function SignupSection() {
 
                     {/* Add Friends Section */}
                     <div>
-                      <h4 className="text-base font-medium text-white mb-3">Build Your Circle</h4>
+                      <h4 className="text-base font-medium text-white mb-2">Build Your Circle</h4>
+                      <p className="text-xs text-gray-400 mb-3">Connect with people you actually want to hang out with, chill, or spend time with</p>
                       <form onSubmit={handleAddFriend} className="space-y-3">
                         <div className="grid grid-cols-2 gap-2">
                           <input

@@ -39,11 +39,15 @@ interface InvitationStats {
 }
 
 const RELATIONSHIP_OPTIONS = [
-  'friend',
-  'family',
-  'colleague',
-  'acquaintance',
-  'partner'
+  'Spouse',
+  'Dating',
+  'Family',
+  'Close Friends',
+  'Friends',
+  'Colleague',
+  'Roommate',
+  'Acquaintance',
+  'Just Met'
 ]
 
 export default function ProfilePage() {
@@ -81,6 +85,23 @@ export default function ProfilePage() {
   const [isLoadingCircle, setIsLoadingCircle] = useState(false)
   const [isLoadingInvitation, setIsLoadingInvitation] = useState(false)
   const [isUpdatingRelationship, setIsUpdatingRelationship] = useState<string | null>(null)
+  
+  // Add friend states
+  const [friendData, setFriendData] = useState({
+    email: '',
+    name: '',
+    city_id: null as number | null,
+    city: '',
+    state: ''
+  })
+  const [friendCitySearch, setFriendCitySearch] = useState('')
+  const [friendCities, setFriendCities] = useState<City[]>([])
+  const [friendSelectedCity, setFriendSelectedCity] = useState<City | null>(null)
+  const [isFriendCitySearching, setIsFriendCitySearching] = useState(false)
+  const [showFriendCities, setShowFriendCities] = useState(false)
+  const [friendUseManualLocation, setFriendUseManualLocation] = useState(false)
+  const [friendRelationshipType, setFriendRelationshipType] = useState('Friends')
+  const [isAddingFriend, setIsAddingFriend] = useState(false)
 
   // Debounce and request cancellation refs
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
@@ -401,23 +422,143 @@ export default function ProfilePage() {
     }
   }
 
-  // Get relationship ring position (0 = center, 4 = outermost)
-  const getRelationshipRing = (relationshipType: string): number => {
-    switch (relationshipType) {
-      case 'partner':
-        return 0 // Center - closest relationships
-      case 'family':
-        return 1 // Inner ring - family members
-      case 'friend':
-        return 2 // Middle ring - friends
-      case 'colleague':
-        return 3 // Outer ring - work relationships
-      case 'acquaintance':
-        return 4 // Outermost ring - casual connections
-      default:
-        return 2 // Default to middle (friend level)
+  // Search cities for friend
+  const searchFriendCities = async (searchTerm: string) => {
+    if (searchTerm.length < 2) {
+      setFriendCities([])
+      setShowFriendCities(false)
+      return
+    }
+    
+    setIsFriendCitySearching(true)
+    try {
+      const baseUrl = `https://${process.env.NEXT_PUBLIC_SUPABASE_PROJECT}.supabase.co/functions/v1`
+      const response = await fetch(`${baseUrl}/cities?search=${encodeURIComponent(searchTerm)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.NEXT_PUBLIC_API_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        }
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        setFriendCities(result.cities)
+        setShowFriendCities(result.cities.length > 0)
+        
+        if (result.cities.length === 0 && searchTerm.length >= 3) {
+          setFriendUseManualLocation(true)
+        }
+      }
+    } catch (error) {
+      console.error('Friend city search error:', error)
+    } finally {
+      setIsFriendCitySearching(false)
     }
   }
+
+  // Handle friend city search with debouncing
+  const handleFriendCitySearch = (value: string) => {
+    setFriendCitySearch(value)
+    setFriendSelectedCity(null)
+    setFriendData(prev => ({ ...prev, city_id: null, city: value }))
+    setFriendUseManualLocation(false)
+    
+    // Clear previous debounce timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+    
+    // Set new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      searchFriendCities(value)
+    }, 400)
+  }
+
+  // Select friend city
+  const selectFriendCity = (city: City) => {
+    setFriendSelectedCity(city)
+    setFriendCitySearch(city.display)
+    setFriendData(prev => ({ 
+      ...prev, 
+      city_id: city.id, 
+      city: city.city,
+      state: city.state 
+    }))
+    setShowFriendCities(false)
+    setFriendUseManualLocation(false)
+  }
+
+  // Add friend
+  const addFriend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!user?.id) return
+    
+    setIsAddingFriend(true)
+    setError('')
+    
+    try {
+      const addFriendData: Record<string, unknown> = {
+        user_id: user.id,
+        friend_email: friendData.email,
+        friend_name: friendData.name,
+        relationship_type: friendRelationshipType
+      }
+      
+      // Add location if provided
+      if (friendData.city_id) {
+        addFriendData.friend_city_id = friendData.city_id
+      } else if (friendData.city && friendData.state) {
+        addFriendData.friend_city = friendData.city
+        addFriendData.friend_state = friendData.state
+      }
+      
+      const result = await apiCall('/add-friend', {
+        method: 'POST',
+        body: JSON.stringify(addFriendData)
+      })
+      
+      if (result.success) {
+        // Add new friend to circle if relationship was created
+        if (result.relationship_created && result.friend) {
+          const newConnection: CircleConnection = {
+            id: result.friend.id,
+            name: result.friend.name,
+            relationship_type: friendRelationshipType,
+            user_a_id: user.id,
+            user_b_id: result.friend.id
+          }
+          setCircle(prev => [...prev, newConnection])
+        }
+        
+        // Clear form
+        setFriendData({
+          email: '',
+          name: '',
+          city_id: null,
+          city: '',
+          state: ''
+        })
+        setFriendCitySearch('')
+        setFriendSelectedCity(null)
+        setFriendRelationshipType('Friends')
+        setFriendUseManualLocation(false)
+        
+        setSuccess(result.message || 'Friend added successfully!')
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        setError(result.message || 'Failed to add friend')
+        setTimeout(() => setError(''), 3000)
+      }
+    } catch {
+      setError('Network error. Please try again.')
+      setTimeout(() => setError(''), 3000)
+    } finally {
+      setIsAddingFriend(false)
+    }
+  }
+
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -705,82 +846,54 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Concentric Circles Visualization */}
+            {/* Simple Tag-Based Connections */}
             <div className="mb-8">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="relative w-96 h-96 mx-auto"
+                className="text-center"
               >
-                {/* SVG Container for Circles */}
-                <svg className="w-full h-full" viewBox="0 0 400 400">
-                  {/* Concentric circles as guides */}
-                  <circle cx="200" cy="200" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
-                  <circle cx="200" cy="200" r="80" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
-                  <circle cx="200" cy="200" r="120" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
-                  <circle cx="200" cy="200" r="160" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
-                  <circle cx="200" cy="200" r="190" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
-                  
-                  {/* User at center */}
-                  <circle cx="200" cy="200" r="20" fill="url(#userGradient)" />
-                  <text x="200" y="208" textAnchor="middle" className="fill-black font-bold text-lg">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </text>
-                  
-                  {/* Connections positioned on rings */}
-                  {circle.map((connection) => {
-                    const ring = getRelationshipRing(connection.relationship_type)
-                    const ringRadius = 40 + (ring * 40) // 40, 80, 120, 160, 200
-                    const totalInRing = circle.filter(c => getRelationshipRing(c.relationship_type) === ring).length
-                    const indexInRing = circle.filter(c => getRelationshipRing(c.relationship_type) === ring).indexOf(connection)
-                    const angle = (indexInRing / totalInRing) * 2 * Math.PI
-                    const x = 200 + ringRadius * Math.cos(angle)
-                    const y = 200 + ringRadius * Math.sin(angle)
-                    
-                    return (
-                      <g key={connection.id}>
-                        <circle cx={x} cy={y} r="12" fill="rgba(17, 208, 190, 0.2)" stroke="#11d0be" strokeWidth="2" />
-                        <text x={x} y={y + 4} textAnchor="middle" className="fill-white font-medium text-xs">
-                          {connection.name.charAt(0)}
-                        </text>
-                        
-                        {/* Curved text path for name */}
-                        <defs>
-                          <path id={`textPath-${connection.id}`} d={`M ${x-30} ${y} A 30 30 0 0 1 ${x+30} ${y}`} />
-                        </defs>
-                        <text className="fill-white text-xs">
-                          <textPath href={`#textPath-${connection.id}`} startOffset="50%" textAnchor="middle">
-                            {connection.name}
-                          </textPath>
-                        </text>
-                      </g>
-                    )
-                  })}
-                  
-                  {/* Gradient definitions */}
-                  <defs>
-                    <linearGradient id="userGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#11d0be" />
-                      <stop offset="100%" stopColor="#0fb8a8" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                <h3 className="text-xl font-bold text-white mb-6">Your Connections</h3>
                 
-                {/* Loading overlay */}
-                {isLoadingCircle && (
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                    <div className="w-8 h-8 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin"></div>
+                {isLoadingCircle ? (
+                  <div className="py-8">
+                    <div className="w-8 h-8 border-2 border-[#11d0be] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading connections...</p>
                   </div>
-                )}
-                
-                {/* Empty state */}
-                {!isLoadingCircle && circle.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-gray-400 mb-2">No connections yet</p>
-                      <p className="text-sm text-gray-500">Share your invitation to start building your circle</p>
+                ) : circle.length > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+                    {circle.map((connection) => (
+                      <motion.div
+                        key={connection.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#11d0be]/20 to-[#0fb8a8]/20 border border-[#11d0be]/30 rounded-full text-white font-medium hover:from-[#11d0be]/30 hover:to-[#0fb8a8]/30 transition-all duration-300"
+                      >
+                        <div className="w-6 h-6 bg-gradient-to-r from-[#11d0be] to-[#0fb8a8] rounded-full flex items-center justify-center mr-2">
+                          <span className="text-xs font-bold text-black">
+                            {connection.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="text-sm">
+                          {connection.name}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-2">
+                          ({connection.relationship_type})
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                      </svg>
                     </div>
+                    <p className="text-gray-400 mb-2">No connections yet</p>
+                    <p className="text-sm text-gray-500">Share your invitation to start building your network</p>
                   </div>
                 )}
               </motion.div>
@@ -856,6 +969,137 @@ export default function ProfilePage() {
                           WhatsApp
                         </button>
                       </div>
+                    </div>
+                    
+                    {/* Divider */}
+                    <div className="border-t border-white/10 my-6"></div>
+                    
+                    {/* Add Friend Form */}
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-4">Add Friend Directly</h4>
+                      <form onSubmit={addFriend} className="space-y-4">
+                        {/* Email Input */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                            Friend&apos;s Email
+                          </label>
+                          <input
+                            type="email"
+                            value={friendData.email}
+                            onChange={(e) => setFriendData(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent text-sm"
+                            placeholder="friend@example.com"
+                            required
+                          />
+                        </div>
+                        
+                        {/* Name Input */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                            Friend&apos;s Name
+                          </label>
+                          <input
+                            type="text"
+                            value={friendData.name}
+                            onChange={(e) => setFriendData(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent text-sm"
+                            placeholder="Friend's full name"
+                            required
+                          />
+                        </div>
+                        
+                        {/* Relationship Type */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                            Relationship
+                          </label>
+                          <select
+                            value={friendRelationshipType}
+                            onChange={(e) => setFriendRelationshipType(e.target.value)}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent text-sm"
+                            required
+                          >
+                            {RELATIONSHIP_OPTIONS.map((option) => (
+                              <option key={option} value={option} className="bg-gray-900 text-white">
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {/* Friend City Search (Optional) */}
+                        <div className="relative">
+                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                            Friend&apos;s City (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={friendCitySearch}
+                            onChange={(e) => handleFriendCitySearch(e.target.value)}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent text-sm"
+                            placeholder="Search for their city"
+                          />
+                          
+                          {/* Friend Cities Dropdown */}
+                          {showFriendCities && friendCities.length > 0 && (
+                            <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                              {friendCities.map((city) => (
+                                <button
+                                  key={city.id}
+                                  type="button"
+                                  onClick={() => selectFriendCity(city)}
+                                  className="w-full text-left px-3 py-2 text-white hover:bg-white/10 transition-colors text-sm"
+                                >
+                                  {city.display}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {isFriendCitySearching && (
+                            <div className="absolute right-3 top-8 text-gray-400 text-sm">
+                              Searching...
+                            </div>
+                          )}
+                          
+                          {friendSelectedCity && (
+                            <p className="text-xs text-green-400 mt-1">
+                              Selected: {friendSelectedCity.display}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* State Selection for Friend - Show when manual location */}
+                        {friendUseManualLocation && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                              State
+                            </label>
+                            <select
+                              value={friendData.state}
+                              onChange={(e) => setFriendData(prev => ({ ...prev, state: e.target.value }))}
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-[#11d0be] focus:border-transparent text-sm"
+                              required
+                            >
+                              <option value="" className="bg-gray-900 text-white">Select state</option>
+                              {US_STATES.map((state) => (
+                                <option key={state.code} value={state.code} className="bg-gray-900 text-white">
+                                  {state.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        
+                        {/* Submit Button */}
+                        <button
+                          type="submit"
+                          disabled={isAddingFriend || !friendData.email || !friendData.name}
+                          className="w-full py-2 bg-[#FF6B35] hover:bg-[#FF6B35]/80 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-300 text-sm"
+                        >
+                          {isAddingFriend ? 'Adding Friend...' : 'Add Friend'}
+                        </button>
+                      </form>
                     </div>
                   </div>
                 ) : (

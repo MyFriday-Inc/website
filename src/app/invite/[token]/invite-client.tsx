@@ -451,8 +451,8 @@ export default function InvitePageClient({ token }: { token: string }) {
       <Header />
       <section className="min-h-screen bg-black relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full bg-[#11d0be]/5 blur-3xl"></div>
-        <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-[#FF6B35]/10 to-transparent blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full bg-[#11d0be]/5 blur-3xl z-[-1]"></div>
+        <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-[#FF6B35]/10 to-transparent blur-3xl z-[-1]"></div>
         
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-3"
@@ -486,6 +486,51 @@ export default function InvitePageClient({ token }: { token: string }) {
                 </p>
                 <p className="text-sm text-gray-400">
                   First AI Social Life Assistant
+                </p>
+              </motion.div>
+            )}
+
+            {/* What is Friday - Brief Explanation */}
+            {currentStep === 'signup' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 mb-6"
+              >
+                <h3 className="text-lg font-bold text-white mb-3 text-center">
+                  Experience <span className="bg-gradient-to-r from-[#0d9488] to-[#11d0be] bg-clip-text text-transparent">Friday</span> in Email
+                </h3>
+                <p className="text-sm text-gray-300 text-center mb-4 leading-relaxed">
+                  Friday lives in your <span className="text-[#FF6B35] font-medium">inbox</span>, proactively strengthening your existing relationships. It tracks your circles, suggests meaningful hangouts, and coordinates plans so you stay connected with the people who matter most.
+                </p>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-[#11d0be]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-[#11d0be]" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path fillRule="evenodd" d="M1.885.511a1.745 1.745 0 012.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 00.178.643l2.457 2.457a.678.678 0 00.644.178l2.189-.547a1.745 1.745 0 011.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 01-7.01-4.42 18.634 18.634 0 01-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white">Relationship Radar</h4>
+                      <p className="text-xs text-gray-400">Tracks when it&apos;s been too long and suggests hangouts</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-[#11d0be]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-[#11d0be]" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white">Vibe-Based Venues</h4>
+                      <p className="text-xs text-gray-400">Suggests places based on actual reviews and energy</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  No more <span className="text-[#FF6B35] font-medium">47-message group chats</span> about brunch - Friday just makes it happen.
                 </p>
               </motion.div>
             )}
@@ -698,7 +743,8 @@ export default function InvitePageClient({ token }: { token: string }) {
 
                   {/* Add Friends Section */}
                   <div>
-                    <h4 className="text-lg font-semibold text-white mb-4">Build Your Circle</h4>
+                    <h4 className="text-lg font-semibold text-white mb-2">Build Your Circle</h4>
+                    <p className="text-sm text-gray-400 mb-4">Connect with people you actually want to hang out with, chill, or spend time with</p>
                     <form onSubmit={handleAddFriend} className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <input
