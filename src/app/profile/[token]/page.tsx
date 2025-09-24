@@ -29,7 +29,8 @@ interface CircleConnection {
   id: string
   name: string
   relationship_type: string
-  relationship_id: string
+  user_a_id: string
+  user_b_id: string
 }
 
 interface InvitationStats {
@@ -38,15 +39,11 @@ interface InvitationStats {
 }
 
 const RELATIONSHIP_OPTIONS = [
-  'Spouse',
-  'Dating',
-  'Family',
-  'Close Friends',
-  'Friends',
-  'Colleague',
-  'Roommate',
-  'Acquaintance',
-  'Just Met'
+  'friend',
+  'family',
+  'colleague',
+  'acquaintance',
+  'partner'
 ]
 
 export default function ProfilePage() {
@@ -357,18 +354,22 @@ export default function ProfilePage() {
   }
 
   // Update relationship type
-  const updateRelationshipType = async (relationshipId: string, newType: string) => {
-    setIsUpdatingRelationship(relationshipId)
+  const updateRelationshipType = async (connection: CircleConnection, newType: string) => {
+    setIsUpdatingRelationship(connection.id)
     try {
-      const result = await apiCall(`/user-profile/${token}/relationship/${relationshipId}`, {
+      const result = await apiCall(`/user-profile/${token}/relationship`, {
         method: 'PUT',
-        body: JSON.stringify({ relationship_type: newType })
+        body: JSON.stringify({ 
+          relationship_type: newType,
+          user_a_id: connection.user_a_id,
+          user_b_id: connection.user_b_id
+        })
       })
       
       if (result.success) {
         // Update local circle data
         setCircle(prev => prev.map(conn => 
-          conn.relationship_id === relationshipId 
+          conn.id === connection.id 
             ? { ...conn, relationship_type: newType }
             : conn
         ))
@@ -403,22 +404,18 @@ export default function ProfilePage() {
   // Get relationship ring position (0 = center, 4 = outermost)
   const getRelationshipRing = (relationshipType: string): number => {
     switch (relationshipType) {
-      case 'Spouse':
-      case 'Dating':
-        return 0 // Center
-      case 'Family':
-      case 'Close Friends':
-        return 1 // Inner ring
-      case 'Friends':
-        return 2 // Middle ring
-      case 'Colleague':
-      case 'Roommate':
-        return 3 // Outer ring
-      case 'Acquaintance':
-      case 'Just Met':
-        return 4 // Outermost ring
+      case 'partner':
+        return 0 // Center - closest relationships
+      case 'family':
+        return 1 // Inner ring - family members
+      case 'friend':
+        return 2 // Middle ring - friends
+      case 'colleague':
+        return 3 // Outer ring - work relationships
+      case 'acquaintance':
+        return 4 // Outermost ring - casual connections
       default:
-        return 2 // Default to middle
+        return 2 // Default to middle (friend level)
     }
   }
 
@@ -906,8 +903,8 @@ export default function ProfilePage() {
                         
                         <select
                           value={connection.relationship_type}
-                          onChange={(e) => updateRelationshipType(connection.relationship_id, e.target.value)}
-                          disabled={isUpdatingRelationship === connection.relationship_id}
+                          onChange={(e) => updateRelationshipType(connection, e.target.value)}
+                          disabled={isUpdatingRelationship === connection.id}
                           className="px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#11d0be] disabled:opacity-50"
                         >
                           {RELATIONSHIP_OPTIONS.map((option) => (
