@@ -6,6 +6,8 @@ import Modal from '@/components/Modal'
 import Link from 'next/link'
 import { useInView } from '@/hooks/useInView'
 import { US_STATES } from '@/utils/states'
+import GeoRestrictedButton from '@/components/GeoRestrictedButton'
+import { useGeoModal } from '@/components/GeoModalProvider'
 
 interface City {
   id: number
@@ -46,6 +48,7 @@ const RELATIONSHIP_OPTIONS = [
 ]
 
 export default function SignupSection() {
+  const { openInternationalModal } = useGeoModal()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [reducedMotion, setReducedMotion] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
@@ -741,7 +744,7 @@ export default function SignupSection() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: 2.6 }}
                     >
-                      <motion.button
+                      <GeoRestrictedButton
                         type="submit"
                         disabled={
                           isSigningUp || 
@@ -752,12 +755,13 @@ export default function SignupSection() {
                           emailExists === true ||
                           emailExists === null
                         }
+                        onClick={() => {}} // Form submission is handled by onSubmit on form element
+                        onInternationalClick={openInternationalModal}
                         className="w-full py-2.5 bg-[#11d0be] hover:bg-[#0fb8a8] disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-semibold rounded-full transition-all duration-300 text-sm shadow-sm"
-                        whileHover={{ scale: 1.03, boxShadow: "0 10px 25px rgba(17, 208, 190, 0.3)" }}
-                        whileTap={{ scale: 0.97 }}
+                        internationalText="US Only - Join International List"
                       >
                         {isSigningUp ? 'Processing...' : (emailExists === true ? 'Email Already Registered' : 'Join Waitlist')}
-                      </motion.button>
+                      </GeoRestrictedButton>
                     </motion.div>
                   </form>
                 ) : (

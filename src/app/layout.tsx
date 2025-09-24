@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Outfit } from 'next/font/google'
 import Script from 'next/script'
+import GeoWrapper from '@/components/GeoWrapper'
 import './globals.css'
 
 const outfit = Outfit({ 
@@ -65,7 +66,9 @@ export default function RootLayout({
             gtag('config', 'G-BJJ0V6C5SN');
           `}
         </Script>
-        {children}
+        <GeoWrapper>
+          {children}
+        </GeoWrapper>
       </body>
     </html>
   )

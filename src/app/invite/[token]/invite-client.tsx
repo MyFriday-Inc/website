@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { US_STATES } from '@/utils/states'
+import GeoRestrictedButton from '@/components/GeoRestrictedButton'
+import { useGeoModal } from '@/components/GeoModalProvider'
 
 interface City {
   id: number
@@ -52,6 +54,7 @@ const RELATIONSHIP_OPTIONS = [
 ]
 
 export default function InvitePageClient({ token }: { token: string }) {
+  const { openInternationalModal } = useGeoModal()
   
   // Invitation validation states
   const [isValidating, setIsValidating] = useState(true)
@@ -693,7 +696,7 @@ export default function InvitePageClient({ token }: { token: string }) {
                   )}
 
                   {/* Submit Button */}
-                  <button
+                  <GeoRestrictedButton
                     type="submit"
                     disabled={
                       isSigningUp || 
@@ -703,13 +706,16 @@ export default function InvitePageClient({ token }: { token: string }) {
                       (emailExists === false && (!formData.name || (!formData.city_id && (!formData.city || !formData.state)))) ||
                       (emailExists === true && !formData.name)
                     }
+                    onClick={() => {}} // Form submission is handled by onSubmit on form element
+                    onInternationalClick={openInternationalModal}
                     className="w-full py-3 bg-[#11d0be] hover:bg-[#0fb8a8] disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-bold rounded-lg transition-all duration-300"
+                    internationalText="US Only - Join International List"
                   >
                     {isSigningUp 
                       ? (emailExists === true ? 'Connecting...' : 'Joining Friday...')
                       : (emailExists === true ? `Connect with ${invitation?.inviter_name}` : 'Join Friday')
                     }
-                  </button>
+                  </GeoRestrictedButton>
                 </form>
               ) : (
                 /* Success State with Add Friends */
