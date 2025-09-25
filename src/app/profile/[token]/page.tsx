@@ -846,7 +846,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Simple Tag-Based Connections */}
+            {/* Circular Connections Layout */}
             <div className="mb-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -862,28 +862,88 @@ export default function ProfilePage() {
                     <p className="text-gray-400">Loading connections...</p>
                   </div>
                 ) : circle.length > 0 ? (
-                  <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
-                    {circle.map((connection) => (
-                      <motion.div
-                        key={connection.id}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#11d0be]/20 to-[#0fb8a8]/20 border border-[#11d0be]/30 rounded-full text-white font-medium hover:from-[#11d0be]/30 hover:to-[#0fb8a8]/30 transition-all duration-300"
-                      >
-                        <div className="w-6 h-6 bg-gradient-to-r from-[#11d0be] to-[#0fb8a8] rounded-full flex items-center justify-center mr-2">
-                          <span className="text-xs font-bold text-black">
-                            {connection.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="text-sm">
-                          {connection.name}
+                  <div className="relative w-full max-w-5xl mx-auto h-80 sm:h-96">
+                    {/* Center "You" indicator */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                      <div className="w-12 h-12 bg-gradient-to-r from-[#11d0be] to-[#0fb8a8] rounded-full flex items-center justify-center border-2 border-white/20">
+                        <span className="text-lg font-bold text-black">
+                          {user?.name.charAt(0).toUpperCase()}
                         </span>
-                        <span className="text-xs text-gray-400 ml-2">
-                          ({connection.relationship_type})
-                        </span>
-                      </motion.div>
-                    ))}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1 text-center">You</div>
+                    </div>
+
+                    {/* Scattered connections around center */}
+                    {circle.map((connection, index) => {
+                      // Generate scattered positions around center
+                      const totalConnections = circle.length;
+                      const baseAngle = (index * 360 / totalConnections) * (Math.PI / 180);
+                      const angleVariation = (Math.sin(index * 2.5) * 0.6); // Add some randomness
+                      const finalAngle = baseAngle + angleVariation;
+                      
+                      // Vary the distance from center for more organic look
+                      const baseRadius = Math.min(120, 80 + totalConnections * 8);
+                      const radiusVariation = 20 + (Math.cos(index * 1.7) * 25);
+                      const finalRadius = baseRadius + radiusVariation;
+                      
+                      // Calculate position
+                      const x = Math.cos(finalAngle) * finalRadius;
+                      const y = Math.sin(finalAngle) * finalRadius;
+                      
+                      return (
+                        <motion.div
+                          key={connection.id}
+                          initial={{ opacity: 0, scale: 0.3, x: 0, y: 0 }}
+                          animate={{ 
+                            opacity: 1, 
+                            scale: 1,
+                            x: x,
+                            y: y
+                          }}
+                          transition={{ 
+                            delay: 0.3 + (index * 0.1),
+                            type: "spring",
+                            stiffness: 80,
+                            damping: 15
+                          }}
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                          style={{
+                            zIndex: 5
+                          }}
+                        >
+                          <div className="group relative">
+                            {/* Connection line to center */}
+                            <div 
+                              className="absolute top-1/2 left-1/2 origin-left h-0.5 bg-gradient-to-r from-[#11d0be]/30 to-transparent opacity-30 group-hover:opacity-60 transition-opacity duration-300"
+                              style={{
+                                width: `${finalRadius}px`,
+                                transform: `translate(-50%, -50%) rotate(${finalAngle + Math.PI}rad)`
+                              }}
+                            />
+                            
+                            {/* Connection tag */}
+                            <div className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-[#11d0be]/20 to-[#0fb8a8]/20 border border-[#11d0be]/30 rounded-full text-white font-medium hover:from-[#11d0be]/40 hover:to-[#0fb8a8]/40 hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm">
+                              <div className="w-5 h-5 bg-gradient-to-r from-[#11d0be] to-[#0fb8a8] rounded-full flex items-center justify-center mr-2">
+                                <span className="text-xs font-bold text-black">
+                                  {connection.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <span className="text-sm font-medium">
+                                {connection.name}
+                              </span>
+                              <span className="text-xs text-gray-400 ml-2 hidden sm:inline">
+                                ({connection.relationship_type})
+                              </span>
+                            </div>
+                            
+                            {/* Mobile-friendly relationship type tooltip */}
+                            <div className="sm:hidden absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                              {connection.relationship_type}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8">

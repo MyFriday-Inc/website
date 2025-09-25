@@ -252,6 +252,29 @@ export default function Hero() {
                 <span className="text-[#FF6B35] font-semibold tracking-wide text-sm">Be the pioneer that shapes Friday&apos;s future</span>
               </p>
             </motion.div>
+
+            {/* Product Hunt Badge */}
+            <motion.div
+              className="flex items-center justify-center md:justify-start mt-6 gap-3"
+              variants={itemVariants}
+            >
+              <p className="text-gray-400 text-sm">Featured on</p>
+              <a 
+                href="https://www.producthunt.com/products/friday-7?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-friday&#0045;7" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block hover:scale-105 transition-transform duration-200"
+              >
+                <img 
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1019809&theme=dark&t=1758775155601" 
+                  alt="Friday - World's 1st Social Life AI Assistant | Product Hunt" 
+                  style={{width: '160px', height: '35px'}} 
+                  width="160" 
+                  height="35"
+                  className="max-w-full h-auto"
+                />
+              </a>
+            </motion.div>
           </motion.div>
 
           {/* Right Content - Progressive Lottie Animation */}
